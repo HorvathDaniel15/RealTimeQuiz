@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealTimeQuiz.WebAPI", "RealTimeQuiz.WebAPI\RealTimeQuiz.WebAPI.csproj", "{9E05A6D9-7B41-4E12-B86B-7D16A23814BE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealTimeQuiz.Logic", "RealTimeQuiz.Logic\RealTimeQuiz.Logic.csproj", "{C78DDFF8-DFA1-4CC0-9E89-C521511F2B88}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealTimeQuiz.Data", "RealTimeQuiz.Data\RealTimeQuiz.Data.csproj", "{ED2E98D1-C4F7-4B88-B011-6249DE3C360B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealTimeQuiz.Model", "RealTimeQuiz.Model\RealTimeQuiz.Model.csproj", "{D52B1D92-9814-453A-A5DD-5A74B8912E55}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9E05A6D9-7B41-4E12-B86B-7D16A23814BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E05A6D9-7B41-4E12-B86B-7D16A23814BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E05A6D9-7B41-4E12-B86B-7D16A23814BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E05A6D9-7B41-4E12-B86B-7D16A23814BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C78DDFF8-DFA1-4CC0-9E89-C521511F2B88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C78DDFF8-DFA1-4CC0-9E89-C521511F2B88}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C78DDFF8-DFA1-4CC0-9E89-C521511F2B88}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C78DDFF8-DFA1-4CC0-9E89-C521511F2B88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED2E98D1-C4F7-4B88-B011-6249DE3C360B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED2E98D1-C4F7-4B88-B011-6249DE3C360B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED2E98D1-C4F7-4B88-B011-6249DE3C360B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED2E98D1-C4F7-4B88-B011-6249DE3C360B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D52B1D92-9814-453A-A5DD-5A74B8912E55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D52B1D92-9814-453A-A5DD-5A74B8912E55}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D52B1D92-9814-453A-A5DD-5A74B8912E55}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D52B1D92-9814-453A-A5DD-5A74B8912E55}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

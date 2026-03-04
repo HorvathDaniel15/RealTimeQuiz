@@ -1,1 +1,22 @@
-/RealTimeQuiz.sln
+# --- .NET / Visual Studio / Rider ---
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+*.shellbuffer
+appsettings.Development.json
+
+# --- Angular / Node ---
+node_modules/
+.angular/
+dist/
+.vscode/
+.env
+npm-debug.log*
+yarn-error.log*
+
+# --- OS specifikus ---
+.DS_Store
+Thumbs.db
