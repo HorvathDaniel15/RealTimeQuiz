@@ -1,7 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace RealTimeQuiz.Model.Entities;
 
 public class Quiz
 {
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
     
     public string Title { get; set; } = String.Empty;
@@ -15,5 +20,5 @@ public class Quiz
     public DateTime? UpdatedAtUtc { get; set; }
     
     public ICollection<QuizQuestion> Questions { get; set; } = new List<QuizQuestion>();
-    public ICollection<QuizSession> QuizSessions { get; set; } = new List<QuizSession>();
+    public ICollection<QuizSession> Sessions { get; set; } = new List<QuizSession>();
 }

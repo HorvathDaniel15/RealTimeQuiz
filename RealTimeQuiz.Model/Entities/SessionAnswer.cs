@@ -1,12 +1,16 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using RealTimeQuiz.Model.Enums;
 
 namespace RealTimeQuiz.Model.Entities;
 
 public class SessionAnswer
 {
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
     
-    public int QuizeSessionId { get; set; }
+    public int QuizSessionId { get; set; }
     public QuizSession QuizSession { get; set; } = null!;
     
     public int SessionParticipantId { get; set; }

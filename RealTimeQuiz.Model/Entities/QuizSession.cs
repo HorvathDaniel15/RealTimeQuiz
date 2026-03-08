@@ -1,9 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using RealTimeQuiz.Model.Enums;
 
 namespace RealTimeQuiz.Model.Entities;
 
 public class QuizSession
 {
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
     
     public int QuizId { get; set; }
