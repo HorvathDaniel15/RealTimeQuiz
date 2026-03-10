@@ -339,7 +339,7 @@ async submitAnswer(questionId: number, optionId: number) {
 - 💾 Quiz export/import
 - 🔄 Quiz duplikálás/template-ek
 - 👥 Csapatmód
-- 📈 历史 eredmények tárolása
+- 📈 Történeti eredmények tárolása
 
 ## Főbb Use Case-ek és Réteg-hozzárendelés
 
