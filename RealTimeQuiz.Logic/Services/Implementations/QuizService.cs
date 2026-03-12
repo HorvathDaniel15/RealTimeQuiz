@@ -35,7 +35,6 @@ public class QuizService : IQuizService
         var quizzes = await _quizRepository.GetByOwnerAsync(ownerId, cancellationToken);
 
         return quizzes
-            .OrderByDescending(q => q.CreatedUtc)
             .Select(MapToQuizListItemDto)
             .ToList();
     }
@@ -189,11 +188,14 @@ public class QuizService : IQuizService
 
         ValidateQuizLevelRules(request, errors);
 
-        for (var questionIndex = 0; questionIndex < request.Questions.Count; questionIndex++)
+        if (request.Questions is not null)
         {
-            ValidateQuestionRules(request.Questions[questionIndex], questionIndex, errors);
+            for (var questionIndex = 0; questionIndex < request.Questions.Count; questionIndex++)
+            {
+                ValidateQuestionRules(request.Questions[questionIndex], questionIndex, errors);
+            }
         }
-
+        
         if (errors.Count > 0)
         {
             throw new BusinessValidationException(errors);
@@ -204,22 +206,22 @@ public class QuizService : IQuizService
     {
         if (string.IsNullOrWhiteSpace(request.Title))
         {
-            errors.Add("A kvíz címe kötelező.");
+            errors.Add("The quiz title is required.");
         }
         else if (request.Title.Trim().Length > QuizTitleMaxLength)
         {
-            errors.Add($"A kvíz címe legfeljebb {QuizTitleMaxLength} karakter lehet.");
+            errors.Add($"The quiz title can be up to {QuizTitleMaxLength} characters long.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Description) &&
             request.Description.Trim().Length > QuizDescriptionMaxLength)
         {
-            errors.Add($"A kvíz leírása legfeljebb {QuizDescriptionMaxLength} karakter lehet.");
+            errors.Add($"The quiz description can be up to {QuizDescriptionMaxLength} characters long.");
         }
 
         if (request.Questions is null || request.Questions.Count < MinQuestionCount)
         {
-            errors.Add("A kvíznek legalább 1 kérdést kell tartalmaznia.");
+            errors.Add("The quiz must contain at least 1 question.");
         }
     }
     
