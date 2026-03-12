@@ -234,34 +234,34 @@ public class QuizService : IQuizService
 
         if (question is null)
         {
-            errors.Add($"A(z) {questionNumber}. kérdés hiányzik.");
+            errors.Add($"Question #{questionNumber} is missing.");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(question.Text))
         {
-            errors.Add($"A(z) {questionNumber}. kérdés szövege kötelező.");
+            errors.Add($"Question #{questionNumber} text is required.");
         }
         else if (question.Text.Trim().Length > QuestionTextMaxLength)
         {
-            errors.Add($"A(z) {questionNumber}. kérdés szövege legfeljebb {QuestionTextMaxLength} karakter lehet.");
+            errors.Add($"Question #{questionNumber} text can be up to {QuestionTextMaxLength} characters long.");
         }
 
         if (!string.IsNullOrWhiteSpace(question.ImageUrl) &&
             question.ImageUrl.Trim().Length > QuestionImageUrlMaxLength)
         {
-            errors.Add($"A(z) {questionNumber}. kérdés kép URL-je legfeljebb {QuestionImageUrlMaxLength} karakter lehet.");
+            errors.Add($"Question #{questionNumber} image URL can be up to {QuestionImageUrlMaxLength} characters long.");
         }
 
         if (question.TimeLimitSeconds < MinTimeLimitSeconds || question.TimeLimitSeconds > MaxTimeLimitSeconds)
         {
             errors.Add(
-                $"A(z) {questionNumber}. kérdés időkorlátja {MinTimeLimitSeconds} és {MaxTimeLimitSeconds} másodperc között lehet.");
+                $"Question #{questionNumber} time limit must be between {MinTimeLimitSeconds} and {MaxTimeLimitSeconds} seconds.");
         }
 
         if (question.Options is null || question.Options.Count < MinOptionCount)
         {
-            errors.Add($"A(z) {questionNumber}. kérdésnek legalább {MinOptionCount} válaszlehetőséget kell tartalmaznia.");
+            errors.Add($"Question #{questionNumber} must contain at least {MinOptionCount} answer options.");
             return;
         }
 
@@ -282,18 +282,18 @@ public class QuizService : IQuizService
 
             if (option is null)
             {
-                errors.Add($"A(z) {questionNumber}. kérdés {optionNumber}. válaszlehetősége hiányzik.");
+                errors.Add($"Option #{optionNumber} for question #{questionNumber} is missing.");
                 continue;
             }
 
             if (string.IsNullOrWhiteSpace(option.Text))
             {
-                errors.Add($"A(z) {questionNumber}. kérdés {optionNumber}. válaszlehetőségének szövege kötelező.");
+                errors.Add($"Text for option #{optionNumber} of question #{questionNumber} is required.");
             }
             else if (option.Text.Trim().Length > OptionTextMaxLength)
             {
                 errors.Add(
-                    $"A(z) {questionNumber}. kérdés {optionNumber}. válaszlehetősége legfeljebb {OptionTextMaxLength} karakter lehet.");
+                    $"Option #{optionNumber} for question #{questionNumber} can be up to {OptionTextMaxLength} characters long.");
             }
 
             if (option.IsCorrect)
@@ -305,7 +305,7 @@ public class QuizService : IQuizService
         if (correctOptionCount != RequiredCorrectOptionCount)
         {
             errors.Add(
-                $"A(z) {questionNumber}. kérdésnek pontosan {RequiredCorrectOptionCount} helyes válaszlehetőséget kell tartalmaznia.");
+                $"Question #{questionNumber} must have exactly {RequiredCorrectOptionCount} correct option.");
         }
     }
 }
