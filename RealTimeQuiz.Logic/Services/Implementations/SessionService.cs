@@ -19,42 +19,42 @@ public class SessionService : ISessionService
         _quizSessionRepository = quizSessionRepository;
     }
     
-    public Task<CreateSessionResultDto> CreateSessionAsync(CreateSessionRequest request, string ownerId, CancellationToken cancellationToken = default)
+    public async Task<CreateSessionResultDto> CreateSessionAsync(CreateSessionRequest request, string ownerId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<SessionLifecycleResultDto> OpenLobbyAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
+    public async Task<SessionLifecycleResultDto> OpenLobbyAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<SessionLifecycleResultDto> StartSessionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
+    public async Task<SessionLifecycleResultDto> StartSessionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<SessionLifecycleResultDto> CloseCurrentQuestionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
+    public async Task<SessionLifecycleResultDto> CloseCurrentQuestionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<SessionLifecycleResultDto> AdvanceToNextQuestionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
+    public async Task<SessionLifecycleResultDto> AdvanceToNextQuestionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<SessionLifecycleResultDto> FinishSessionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
+    public async Task<SessionLifecycleResultDto> FinishSessionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<SessionLifecycleResultDto> CancelSessionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
+    public async Task<SessionLifecycleResultDto> CancelSessionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<SessionDetailsDto> GetSessionDetailsAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
+    public async Task<SessionDetailsDto> GetSessionDetailsAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
@@ -74,6 +74,14 @@ public class SessionService : ISessionService
             throw new BusinessValidationException("The session ID must be a positive number.");
         }
     }
+
+    private void ValidateQuizId(int quizId)
+    {
+        if (quizId <= 0)
+        {
+            throw new BusinessValidationException("The quiz ID must be a positive number.");
+        }
+    }
     
     private void ValidateCreateSessionRequest(CreateSessionRequest request)
     {
@@ -82,21 +90,56 @@ public class SessionService : ISessionService
             throw new BusinessValidationException("The create session request cannot be null.");
         }
         
-        if (request.QuizId <= 0)
-        {
-            throw new BusinessValidationException("The quiz ID must be a positive number.");
-        }
+        ValidateQuizId(request.QuizId);
         
     }
     
-    private Task<QuizSession> LoadOwnedSessionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
+    private async Task<QuizSession> LoadOwnedSessionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        ValidateOwnerId(ownerId);
+        ValidateSessionId(sessionId);
+        
+        var session = await _quizSessionRepository.GetDetailedByIdAsync(sessionId, cancellationToken);
+        if (session is null)
+        {
+            throw new EntityNotFoundException($"No quiz session found with ID {sessionId}.");
+        }
+        
+        if (session.Quiz is null || string.IsNullOrWhiteSpace(session.Quiz.OwnerId))
+        {
+            throw new BusinessValidationException("The loaded session is missing quiz ownership data.");
+        }
+
+        if (!string.Equals(session.Quiz.OwnerId, ownerId, StringComparison.Ordinal))
+        {
+            throw new ForbiddenOperationException("The current user is not the owner of this quiz session.");
+        }
+
+        return session;
     }
 
-    private Task<Quiz> LoadOwnedQuizAsync(int quizId, string ownerId, CancellationToken cancellationToken = default)
+    private async Task<Quiz> LoadOwnedQuizAsync(int quizId, string ownerId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        ValidateOwnerId(ownerId);
+        ValidateQuizId(quizId);
+        
+        var quiz = await _quizRepository.GetDetailedByIdAsync(quizId, cancellationToken);
+        if (quiz is null)
+        {
+            throw new EntityNotFoundException($"No quiz found with ID {quizId}.");
+        }
+
+        if (string.IsNullOrWhiteSpace(quiz.OwnerId))
+        {
+            throw new BusinessValidationException("The loaded quiz is missing ownership data.");
+        }
+
+        if (!string.Equals(quiz.OwnerId, ownerId, StringComparison.Ordinal))
+        {
+            throw new ForbiddenOperationException("The current user is not the owner of this quiz.");
+        }
+        
+        return quiz;
     }
 
     private IReadOnlyList<QuizQuestion> GetOrderedQuestions(Quiz quiz)
@@ -119,7 +162,7 @@ public class SessionService : ISessionService
         
     }
     
-    private Task<string> GenerateUniqueJoinPinAsync(CancellationToken cancellationToken = default)
+    private async Task<string> GenerateUniqueJoinPinAsync(CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
