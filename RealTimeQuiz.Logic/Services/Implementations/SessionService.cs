@@ -144,7 +144,35 @@ public class SessionService : ISessionService
 
     private IReadOnlyList<QuizQuestion> GetOrderedQuestions(Quiz quiz)
     {
-        throw new NotImplementedException();
+        if (quiz is null)
+        {
+            throw new BusinessValidationException("The quiz cannot be null.");
+        }
+
+        if (quiz.Questions is null)
+        {
+            throw new BusinessValidationException("The quiz question are not loaded.");
+        }
+
+        if (quiz.Questions.Any(q=> q.QuizId == quiz.Id))
+        {
+            throw new BusinessValidationException("The loaded quiz contains questions from another quiz.");
+        }
+
+        var duplicateOrderIndex = quiz.Questions
+            .GroupBy(q => q.OrderIndex)
+            .FirstOrDefault(g => g.Count() > 1);
+
+        if (duplicateOrderIndex is not null)
+        {
+            throw new BusinessValidationException(
+                $"Duplicate question order index detected: {duplicateOrderIndex.Key}.");
+        }
+
+        return quiz.Questions
+            .OrderBy(q => q.OrderIndex)
+            .ThenBy(q => q.Id)
+            .ToList();
     }
 
     private QuizQuestion? GetFirstQuestion(Quiz quiz)
