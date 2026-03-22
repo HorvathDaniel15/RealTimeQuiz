@@ -65,11 +65,6 @@ public class QuizSessionRepository : IQuizSessionRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<bool> JoinPinExistsAsync(string joinPin, CancellationToken cancellationToken = default)
-    {
-        return await _context.QuizSessions
-            .AnyAsync(x => x.JoinPin == joinPin, cancellationToken);
-    }
 
     private static bool IsJoinPinUniqueConstraintViolation(DbUpdateException exception)
     {

@@ -11,6 +11,4 @@ public interface IQuizSessionRepository
     Task AddAsync(QuizSession session, CancellationToken cancellationToken = default);
     Task<bool> TryAddAsync(QuizSession session, CancellationToken cancellationToken = default);
     Task UpdateAsync(QuizSession session, CancellationToken cancellationToken = default);
-    
-    Task<bool> JoinPinExistsAsync(string joinPin, CancellationToken cancellationToken = default);
 }
