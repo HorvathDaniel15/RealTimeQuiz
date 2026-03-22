@@ -40,7 +40,7 @@ public class SessionService : ISessionService
             var session = new QuizSession
             {
                 QuizId = quiz.Id,
-                JoinPin = await GenerateUniqueJoinPinAsync(cancellationToken),
+                JoinPin = GenerateJoinPin(),
                 State = SessionState.Draft,
                 CurrentQuestionId = null,
                 CreatedAtUtc = DateTime.UtcNow,
@@ -352,20 +352,11 @@ public class SessionService : ISessionService
         }
     }
     
-    private async Task<string> GenerateUniqueJoinPinAsync(CancellationToken cancellationToken = default)
+    private static string GenerateJoinPin()
     {
-        for (var attempt = 0; attempt < MaxJoinPinGenerationAttempts; attempt++)
-        {
-            var randomValue = RandomNumberGenerator.GetInt32(0, (int)Math.Pow(10, JoinPinLength));
-            var joinPin = randomValue.ToString($"D{JoinPinLength}");
-
-            if (!await _quizSessionRepository.JoinPinExistsAsync(joinPin, cancellationToken))
-            {
-                return joinPin;
-            }
-        }
-
-        throw new BusinessValidationException("Unable to generate a unique join PIN. Please try again.");
+        // Uniqueness is guaranteed by the DB unique index and handled by TryAddAsync retries.
+        var randomValue = RandomNumberGenerator.GetInt32(0, (int)Math.Pow(10, JoinPinLength));
+        return randomValue.ToString($"D{JoinPinLength}");
     }
 
     private static CreateSessionResultDto MapToCreateSessionResultDto(QuizSession quizSession)
