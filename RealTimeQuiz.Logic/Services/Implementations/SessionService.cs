@@ -29,8 +29,11 @@ public class SessionService : ISessionService
         ValidateCreateSessionRequest(request);
 
         var quiz = await LoadOwnedQuizAsync(request.QuizId, ownerId, cancellationToken);
-        _ = GetFirstQuestion(quiz) ?? throw new BusinessValidationException(
-            "The quiz must contain at least one question before creating a session.");
+
+        if (GetFirstQuestion(quiz) is null)
+        {
+            throw new BusinessValidationException("The quiz must contain at least one question before creating a session.");
+        }
 
         var session = new QuizSession
         {
