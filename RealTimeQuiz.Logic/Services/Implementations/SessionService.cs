@@ -5,11 +5,15 @@ using RealTimeQuiz.Logic.Exceptions;
 using RealTimeQuiz.Logic.Services.Interfaces;
 using RealTimeQuiz.Model.Entities;
 using RealTimeQuiz.Model.Enums;
+using System.Security.Cryptography;
 
 namespace RealTimeQuiz.Logic.Services.Implementations;
 
 public class SessionService : ISessionService
 {
+    private const int JoinPinLength = 6;
+    private const int MaxJoinPinGenerationAttempts = 100;
+
     private readonly IQuizRepository _quizRepository;
     private readonly IQuizSessionRepository _quizSessionRepository;
 
@@ -21,42 +25,151 @@ public class SessionService : ISessionService
     
     public async Task<CreateSessionResultDto> CreateSessionAsync(CreateSessionRequest request, string ownerId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        ValidateOwnerId(ownerId);
+        ValidateCreateSessionRequest(request);
+
+        var quiz = await LoadOwnedQuizAsync(request.QuizId, ownerId, cancellationToken);
+        _ = GetFirstQuestion(quiz) ?? throw new BusinessValidationException(
+            "The quiz must contain at least one question before creating a session.");
+
+        var session = new QuizSession
+        {
+            QuizId = quiz.Id,
+            Quiz = quiz,
+            JoinPin = await GenerateUniqueJoinPinAsync(cancellationToken),
+            State = SessionState.Draft,
+            CurrentQuestionId = null,
+            CreatedAtUtc = DateTime.UtcNow,
+            StartedAtUtc = null,
+            QuestionOpenedAtUtc = null,
+            QuestionClosedAtUtc = null,
+            FinishedAtUtc = null,
+        };
+
+        await _quizSessionRepository.AddAsync(session, cancellationToken);
+
+        return MapToCreateSessionResultDto(session);
     }
 
     public async Task<SessionLifecycleResultDto> OpenLobbyAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var session = await LoadOwnedSessionAsync(sessionId, ownerId, cancellationToken);
+        EnsureState(session, SessionState.Draft);
+
+        session.State = SessionState.Lobby;
+
+        await _quizSessionRepository.UpdateAsync(session, cancellationToken);
+        return MapToSessionLifecycleResultDto(session);
     }
 
     public async Task<SessionLifecycleResultDto> StartSessionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var session = await LoadOwnedSessionAsync(sessionId, ownerId, cancellationToken);
+        EnsureState(session, SessionState.Lobby);
+
+        var firstQuestion = GetFirstQuestion(session.Quiz)
+                            ?? throw new BusinessValidationException(
+                                "The quiz must contain at least one question before starting the session.");
+
+        var nowUtc = DateTime.UtcNow;
+
+        session.State = SessionState.QuestionOpen;
+        session.CurrentQuestionId = firstQuestion.Id;
+        session.StartedAtUtc ??= nowUtc;
+        session.QuestionOpenedAtUtc = nowUtc;
+        session.QuestionClosedAtUtc = null;
+
+        await _quizSessionRepository.UpdateAsync(session, cancellationToken);
+        return MapToSessionLifecycleResultDto(session);
     }
 
     public async Task<SessionLifecycleResultDto> CloseCurrentQuestionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var session = await LoadOwnedSessionAsync(sessionId, ownerId, cancellationToken);
+        EnsureState(session, SessionState.QuestionOpen);
+
+        if (!session.CurrentQuestionId.HasValue)
+        {
+            throw new BusinessValidationException("Cannot close question because no current question is selected.");
+        }
+
+        session.State = SessionState.QuestionClosed;
+        session.QuestionClosedAtUtc = DateTime.UtcNow;
+
+        await _quizSessionRepository.UpdateAsync(session, cancellationToken);
+        return MapToSessionLifecycleResultDto(session);
     }
 
     public async Task<SessionLifecycleResultDto> AdvanceToNextQuestionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var session = await LoadOwnedSessionAsync(sessionId, ownerId, cancellationToken);
+        EnsureState(session, SessionState.QuestionClosed);
+
+        if (!session.CurrentQuestionId.HasValue)
+        {
+            throw new BusinessValidationException("Cannot advance because no current question is selected.");
+        }
+
+        var nextQuestion = GetNextQuestion(session.Quiz, session.CurrentQuestionId.Value);
+        var nowUtc = DateTime.UtcNow;
+
+        if (nextQuestion is null)
+        {
+            session.State = SessionState.Finished;
+            session.FinishedAtUtc = nowUtc;
+        }
+        else
+        {
+            session.State = SessionState.QuestionOpen;
+            session.CurrentQuestionId = nextQuestion.Id;
+            session.QuestionOpenedAtUtc = nowUtc;
+            session.QuestionClosedAtUtc = null;
+        }
+
+        await _quizSessionRepository.UpdateAsync(session, cancellationToken);
+        return MapToSessionLifecycleResultDto(session);
     }
 
     public async Task<SessionLifecycleResultDto> FinishSessionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var session = await LoadOwnedSessionAsync(sessionId, ownerId, cancellationToken);
+        EnsureState(session, SessionState.Lobby, SessionState.QuestionOpen, SessionState.QuestionClosed);
+
+        var nowUtc = DateTime.UtcNow;
+        if (session.State == SessionState.QuestionOpen)
+        {
+            session.QuestionClosedAtUtc ??= nowUtc;
+        }
+
+        session.State = SessionState.Finished;
+        session.FinishedAtUtc = nowUtc;
+
+        await _quizSessionRepository.UpdateAsync(session, cancellationToken);
+        return MapToSessionLifecycleResultDto(session);
     }
 
     public async Task<SessionLifecycleResultDto> CancelSessionAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var session = await LoadOwnedSessionAsync(sessionId, ownerId, cancellationToken);
+        EnsureState(session, SessionState.Draft, SessionState.Lobby, SessionState.QuestionOpen, SessionState.QuestionClosed);
+
+        var nowUtc = DateTime.UtcNow;
+        if (session.State == SessionState.QuestionOpen)
+        {
+            session.QuestionClosedAtUtc ??= nowUtc;
+        }
+
+        session.State = SessionState.Canceled;
+        session.FinishedAtUtc = nowUtc;
+
+        await _quizSessionRepository.UpdateAsync(session, cancellationToken);
+        return MapToSessionLifecycleResultDto(session);
     }
 
     public async Task<SessionDetailsDto> GetSessionDetailsAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var session = await LoadOwnedSessionAsync(sessionId, ownerId, cancellationToken);
+        return MapToSessionDetailsDto(session);
     }
 
     private void ValidateOwnerId(string ownerId)
@@ -154,9 +267,14 @@ public class SessionService : ISessionService
             throw new BusinessValidationException("The quiz question are not loaded.");
         }
 
-        if (quiz.Questions.Any(q=> q.QuizId == quiz.Id))
+        if (quiz.Questions.Any(q => q.QuizId != quiz.Id))
         {
             throw new BusinessValidationException("The loaded quiz contains questions from another quiz.");
+        }
+
+        if (quiz.Questions.Any(q => q.OrderIndex < 0))
+        {
+            throw new BusinessValidationException("Question order index cannot be negative.");
         }
 
         var duplicateOrderIndex = quiz.Questions
@@ -177,36 +295,130 @@ public class SessionService : ISessionService
 
     private QuizQuestion? GetFirstQuestion(Quiz quiz)
     {
-        throw new NotImplementedException();
+        return GetOrderedQuestions(quiz).FirstOrDefault();
     }
     
     private QuizQuestion? GetNextQuestion(Quiz quiz, int currentQuestionId)
     {
-        throw new NotImplementedException();
+        if (currentQuestionId <= 0)
+        {
+            throw new BusinessValidationException("The current question ID must be a positive number.");
+        }
+
+        var orderedQuestions = GetOrderedQuestions(quiz);
+        var currentIndex = orderedQuestions
+            .Select((question, index) => new { question.Id, index })
+            .FirstOrDefault(x => x.Id == currentQuestionId)?.index;
+
+        if (currentIndex is null)
+        {
+            throw new BusinessValidationException("The current question is not part of this quiz.");
+        }
+
+        var nextIndex = currentIndex.Value + 1;
+        return nextIndex < orderedQuestions.Count
+            ? orderedQuestions[nextIndex]
+            : null;
     }
 
     private void EnsureState(QuizSession session, params SessionState[] allowedStates)
     {
-        
+        if (session is null)
+        {
+            throw new BusinessValidationException("The session cannot be null.");
+        }
+
+        if (allowedStates is null || allowedStates.Length == 0)
+        {
+            throw new BusinessValidationException("No allowed states were configured for this transition.");
+        }
+
+        if (!allowedStates.Contains(session.State))
+        {
+            var allowed = string.Join(", ", allowedStates.Select(x => x.ToString()));
+            throw new BusinessValidationException(
+                $"Invalid session transition from '{session.State}'. Allowed states: {allowed}.");
+        }
     }
     
     private async Task<string> GenerateUniqueJoinPinAsync(CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        for (var attempt = 0; attempt < MaxJoinPinGenerationAttempts; attempt++)
+        {
+            var randomValue = RandomNumberGenerator.GetInt32(0, (int)Math.Pow(10, JoinPinLength));
+            var joinPin = randomValue.ToString($"D{JoinPinLength}");
+
+            if (!await _quizSessionRepository.JoinPinExistsAsync(joinPin, cancellationToken))
+            {
+                return joinPin;
+            }
+        }
+
+        throw new BusinessValidationException("Unable to generate a unique join PIN. Please try again.");
     }
 
     private static CreateSessionResultDto MapToCreateSessionResultDto(QuizSession quizSession)
     {
-        throw new NotImplementedException();
+        return new CreateSessionResultDto
+        {
+            Id = quizSession.Id,
+            QuizId = quizSession.QuizId,
+            JoinPin = quizSession.JoinPin,
+            State = quizSession.State,
+            CreatedAtUtc = quizSession.CreatedAtUtc,
+        };
     }
 
     private static SessionLifecycleResultDto MapToSessionLifecycleResultDto(QuizSession quizSession)
     {
-        throw new NotImplementedException();
+        var currentQuestion = quizSession.Quiz.Questions
+            .FirstOrDefault(q => q.Id == quizSession.CurrentQuestionId);
+
+        return new SessionLifecycleResultDto
+        {
+            Id = quizSession.Id,
+            QuizId = quizSession.QuizId,
+            JoinPin = quizSession.JoinPin,
+            State = quizSession.State,
+            CurrentQuestionId = quizSession.CurrentQuestionId,
+            StartedAtUtc = quizSession.StartedAtUtc,
+            QuestionOpenedAtUtc = quizSession.QuestionOpenedAtUtc,
+            QuestionClosedAtUtc = quizSession.QuestionClosedAtUtc,
+            FinishedAtUtc = quizSession.FinishedAtUtc,
+            CurrentQuestionOrderIndex = currentQuestion?.OrderIndex,
+            CurrentQuestionText = currentQuestion?.Text,
+        };
     }
 
     private static SessionDetailsDto MapToSessionDetailsDto(QuizSession quizSession)
     {
-        throw new NotImplementedException();
+        var currentQuestion = quizSession.Quiz.Questions
+            .FirstOrDefault(q => q.Id == quizSession.CurrentQuestionId);
+
+        return new SessionDetailsDto
+        {
+            Id = quizSession.Id,
+            QuizId = quizSession.QuizId,
+            QuizTitle = quizSession.Quiz.Title,
+            JoinPin = quizSession.JoinPin,
+            State = quizSession.State,
+            CreatedAtUtc = quizSession.CreatedAtUtc,
+            StartedAtUtc = quizSession.StartedAtUtc,
+            QuestionOpenedAtUtc = quizSession.QuestionOpenedAtUtc,
+            QuestionClosedAtUtc = quizSession.QuestionClosedAtUtc,
+            FinishedAtUtc = quizSession.FinishedAtUtc,
+            CurrentQuestionId = quizSession.CurrentQuestionId,
+            ParticipantCount = quizSession.Participants.Count,
+            CurrentQuestion = currentQuestion is null
+                ? null
+                : new SessionCurrentQuestionDto
+                {
+                    Id = currentQuestion.Id,
+                    OrderIndex = currentQuestion.OrderIndex,
+                    Text = currentQuestion.Text,
+                    TimeLimitSeconds = currentQuestion.TimeLimitSeconds,
+                    ImageUrl = currentQuestion.ImageUrl,
+                },
+        };
     }
 }
