@@ -1,4 +1,3 @@
-using RealTimeQuiz.Model.Entities;
 using RealTimeQuiz.Model.Enums;
 
 namespace RealTimeQuiz.Logic.Contracts.Sessions.Responses;

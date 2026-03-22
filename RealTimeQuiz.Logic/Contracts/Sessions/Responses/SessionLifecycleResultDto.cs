@@ -14,5 +14,5 @@ public class SessionLifecycleResultDto
     public DateTime? QuestionClosedAtUtc { get; set; }
     public DateTime? FinishedAtUtc { get; set; }
     public int? CurrentQuestionOrderIndex { get; set; }
-    public string? CurrentQuestionText { get; set; } = string.Empty;
+    public string? CurrentQuestionText { get; set; }
 }
