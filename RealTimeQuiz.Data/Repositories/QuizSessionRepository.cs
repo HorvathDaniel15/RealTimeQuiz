@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using RealTimeQuiz.Data.Interfaces;
 using RealTimeQuiz.Model.Entities;
 
@@ -42,6 +43,22 @@ public class QuizSessionRepository : IQuizSessionRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<bool> TryAddAsync(QuizSession session, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _context.QuizSessions.AddAsync(session, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (DbUpdateException ex) when (IsJoinPinUniqueConstraintViolation(ex))
+        {
+            // Keep the context clean after a failed insert so the caller can retry.
+            _context.Entry(session).State = EntityState.Detached;
+            return false;
+        }
+    }
+
     public async Task UpdateAsync(QuizSession session, CancellationToken cancellationToken = default)
     {
         _context.QuizSessions.Update(session);
@@ -52,5 +69,16 @@ public class QuizSessionRepository : IQuizSessionRepository
     {
         return await _context.QuizSessions
             .AnyAsync(x => x.JoinPin == joinPin, cancellationToken);
+    }
+
+    private static bool IsJoinPinUniqueConstraintViolation(DbUpdateException exception)
+    {
+        if (exception.InnerException is not PostgresException postgresException)
+        {
+            return false;
+        }
+
+        return postgresException.SqlState == PostgresErrorCodes.UniqueViolation
+               && string.Equals(postgresException.ConstraintName, "IX_QuizSessions_JoinPin", StringComparison.Ordinal);
     }
 }

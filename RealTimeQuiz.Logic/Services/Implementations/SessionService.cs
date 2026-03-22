@@ -35,23 +35,28 @@ public class SessionService : ISessionService
             throw new BusinessValidationException("The quiz must contain at least one question before creating a session.");
         }
 
-        var session = new QuizSession
+        for (var attempt = 0; attempt < MaxJoinPinGenerationAttempts; attempt++)
         {
-            QuizId = quiz.Id,
-            Quiz = quiz,
-            JoinPin = await GenerateUniqueJoinPinAsync(cancellationToken),
-            State = SessionState.Draft,
-            CurrentQuestionId = null,
-            CreatedAtUtc = DateTime.UtcNow,
-            StartedAtUtc = null,
-            QuestionOpenedAtUtc = null,
-            QuestionClosedAtUtc = null,
-            FinishedAtUtc = null,
-        };
+            var session = new QuizSession
+            {
+                QuizId = quiz.Id,
+                JoinPin = await GenerateUniqueJoinPinAsync(cancellationToken),
+                State = SessionState.Draft,
+                CurrentQuestionId = null,
+                CreatedAtUtc = DateTime.UtcNow,
+                StartedAtUtc = null,
+                QuestionOpenedAtUtc = null,
+                QuestionClosedAtUtc = null,
+                FinishedAtUtc = null,
+            };
 
-        await _quizSessionRepository.AddAsync(session, cancellationToken);
+            if (await _quizSessionRepository.TryAddAsync(session, cancellationToken))
+            {
+                return MapToCreateSessionResultDto(session);
+            }
+        }
 
-        return MapToCreateSessionResultDto(session);
+        throw new BusinessValidationException("Unable to generate a unique join PIN. Please try again.");
     }
 
     public async Task<SessionLifecycleResultDto> OpenLobbyAsync(int sessionId, string ownerId, CancellationToken cancellationToken = default)
@@ -119,6 +124,7 @@ public class SessionService : ISessionService
         if (nextQuestion is null)
         {
             session.State = SessionState.Finished;
+            session.CurrentQuestionId = null;
             session.FinishedAtUtc = nowUtc;
         }
         else
@@ -145,6 +151,7 @@ public class SessionService : ISessionService
         }
 
         session.State = SessionState.Finished;
+        session.CurrentQuestionId = null;
         session.FinishedAtUtc = nowUtc;
 
         await _quizSessionRepository.UpdateAsync(session, cancellationToken);
@@ -163,6 +170,7 @@ public class SessionService : ISessionService
         }
 
         session.State = SessionState.Canceled;
+        session.CurrentQuestionId = null;
         session.FinishedAtUtc = nowUtc;
 
         await _quizSessionRepository.UpdateAsync(session, cancellationToken);
@@ -267,7 +275,7 @@ public class SessionService : ISessionService
 
         if (quiz.Questions is null)
         {
-            throw new BusinessValidationException("The quiz question are not loaded.");
+            throw new BusinessValidationException("The quiz questions are not loaded.");
         }
 
         if (quiz.Questions.Any(q => q.QuizId != quiz.Id))
@@ -339,7 +347,7 @@ public class SessionService : ISessionService
         if (!allowedStates.Contains(session.State))
         {
             var allowed = string.Join(", ", allowedStates.Select(x => x.ToString()));
-            throw new BusinessValidationException(
+            throw new ForbiddenOperationException(
                 $"Invalid session transition from '{session.State}'. Allowed states: {allowed}.");
         }
     }
@@ -374,6 +382,8 @@ public class SessionService : ISessionService
 
     private static SessionLifecycleResultDto MapToSessionLifecycleResultDto(QuizSession quizSession)
     {
+        EnsureSessionGraphLoadedForMapping(quizSession);
+
         var currentQuestion = quizSession.Quiz.Questions
             .FirstOrDefault(q => q.Id == quizSession.CurrentQuestionId);
 
@@ -395,6 +405,8 @@ public class SessionService : ISessionService
 
     private static SessionDetailsDto MapToSessionDetailsDto(QuizSession quizSession)
     {
+        EnsureSessionGraphLoadedForMapping(quizSession);
+
         var currentQuestion = quizSession.Quiz.Questions
             .FirstOrDefault(q => q.Id == quizSession.CurrentQuestionId);
 
@@ -423,5 +435,23 @@ public class SessionService : ISessionService
                     ImageUrl = currentQuestion.ImageUrl,
                 },
         };
+    }
+
+    private static void EnsureSessionGraphLoadedForMapping(QuizSession quizSession)
+    {
+        if (quizSession.Quiz is null)
+        {
+            throw new BusinessValidationException("The loaded session is missing quiz data for mapping.");
+        }
+
+        if (quizSession.Quiz.Questions is null)
+        {
+            throw new BusinessValidationException("The loaded session is missing quiz questions for mapping.");
+        }
+
+        if (quizSession.Participants is null)
+        {
+            throw new BusinessValidationException("The loaded session is missing participant data for mapping.");
+        }
     }
 }
