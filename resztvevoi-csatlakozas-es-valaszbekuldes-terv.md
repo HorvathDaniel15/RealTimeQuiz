@@ -252,14 +252,16 @@ Megjegyzes:
 
 ## 11. Megvalositas sorrend (ajanlott)
 
-1. DTO-k + service interface letrehozas
-2. service helper-ek megirasa (validalas, load, ensure)
-3. Join use case implementacio
-4. Current question use case implementacio
-5. Submit answer use case implementacio
-6. repository `TryAddAsync` a `SessionAnswer`-hoz
-7. endpoint wiring
-8. integration tesztek
+- [x] 1. DTO-k + service interface letrehozas
+- [x] 2. service helper-ek megirasa (validalas, load, ensure)
+- [x] 3. Join use case implementacio
+- [x] 4. Current question use case implementacio
+- [ ] 5. Submit answer use case implementacio
+- [ ] 6. repository `TryAddAsync` a `SessionAnswer`-hoz
+- [ ] 7. endpoint wiring
+- [ ] 8. integration tesztek
+
+Folytatas innen: **5. Submit answer use case implementacio**
 
 ---
 
