@@ -21,9 +21,12 @@ public class ParticipantRepository : IParticipantRepository
 
     public async Task<SessionParticipant?> GetBySessionAndNameAsync(int sessionId, string displayName, CancellationToken cancellationToken = default)
     {
+        var normalizedDisplayName = displayName.Trim().ToLower();
+
         return await _context.SessionParticipants
-            .FirstOrDefaultAsync(x => x.QuizSessionId == sessionId && 
-                                      x.DisplayName == displayName, cancellationToken);
+            .FirstOrDefaultAsync(x => x.QuizSessionId == sessionId
+                                      && x.DisplayName.Trim().ToLower() == normalizedDisplayName,
+                cancellationToken);
     }
 
     public async Task<List<SessionParticipant>> GetBySessionAsync(int sessionId, CancellationToken cancellationToken = default)

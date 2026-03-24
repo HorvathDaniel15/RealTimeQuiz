@@ -8,4 +8,5 @@ public interface ISessionAnswerRepository
     Task<List<SessionAnswer>> GetAnswersForQuestionAsync(int sessionId, int questionId, CancellationToken cancellationToken = default);
     Task<List<SessionAnswer>> GetAnswersForParticipantAsync(int participantId, CancellationToken cancellationToken = default);
     Task AddAsync(SessionAnswer answer, CancellationToken cancellationToken = default);
+    Task<bool> TryAddAsync(SessionAnswer answer, CancellationToken cancellationToken = default);
 }
