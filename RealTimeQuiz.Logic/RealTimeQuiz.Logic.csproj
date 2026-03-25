@@ -11,4 +11,11 @@
       <ProjectReference Include="..\RealTimeQuiz.Model\RealTimeQuiz.Model.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="ELTE.FI.SARuleSet" Version="3.2.1">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+    </ItemGroup>
+
 </Project>
