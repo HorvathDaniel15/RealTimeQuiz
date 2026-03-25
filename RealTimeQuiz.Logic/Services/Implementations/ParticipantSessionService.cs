@@ -15,27 +15,101 @@ public class ParticipantSessionService : IParticipantSessionService
 
     private readonly IQuizSessionRepository _quizSessionRepository;
     private readonly IParticipantRepository _participantRepository;
+    private readonly ISessionAnswerRepository _sessionAnswerRepository;
 
-    public ParticipantSessionService(IQuizSessionRepository quizSessionRepository, IParticipantRepository participantRepository)
+    public ParticipantSessionService(
+        IQuizSessionRepository quizSessionRepository,
+        IParticipantRepository participantRepository,
+        ISessionAnswerRepository sessionAnswerRepository)
     {
         _quizSessionRepository = quizSessionRepository;
         _participantRepository = participantRepository;
+        _sessionAnswerRepository = sessionAnswerRepository;
     }
 
-    public Task<JoinSessionResultDto> JoinByPinAsync(JoinSessionByPinRequest request, string? userId, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<ParticipantCurrentQuestionDto> GetCurrentQuestionForParticipantAsync(GetCurrentQuestionRequest request,
+    public async Task<JoinSessionResultDto> JoinByPinAsync(JoinSessionByPinRequest request, string? userId,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        ValidateJoinRequest(request);
+
+        var normalizedDisplayName = NormalizeDisplayName(request.DisplayName);
+        var session = await LoadSessionByPinAsync(request.JoinPin, cancellationToken);
+
+        EnsureJoinableState(session);
+        await EnsureDisplayNameIsUniqueAsync(session.Id, normalizedDisplayName, cancellationToken);
+
+        var participant = new SessionParticipant
+        {
+            QuizSessionId = session.Id,
+            DisplayName = normalizedDisplayName,
+            UserId = string.IsNullOrWhiteSpace(userId) ? null : userId.Trim(),
+            JoinedAtUtc = DateTime.UtcNow,
+            TotalScore = 0,
+        };
+
+        await _participantRepository.AddAsync(participant, cancellationToken);
+
+        return MapToJoinSessionResultDto(participant, session);
     }
 
-    public Task<SubmitAnswerResultDto> SubmitAnswerAsync(SubmitAnswerRequest request, CancellationToken cancellationToken = default)
+    public async Task<ParticipantCurrentQuestionDto> GetCurrentQuestionForParticipantAsync(GetCurrentQuestionRequest request,
+        CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (request is null)
+        {
+            throw new BusinessValidationException("The current question request cannot be null.");
+        }
+
+        var (_, session) = await LoadParticipantWithSessionGraphAsync(request.ParticipantId, cancellationToken);
+
+        EnsureQuestionOpenState(session);
+        var currentQuestion = EnsureCurrentQuestionConsistency(session, session.CurrentQuestionId ?? 0);
+
+        if (currentQuestion.Options is null)
+        {
+            throw new BusinessValidationException("The current question options are not loaded.");
+        }
+
+        return MapToParticipantCurrentQuestionDto(session, currentQuestion);
+    }
+
+    public async Task<SubmitAnswerResultDto> SubmitAnswerAsync(SubmitAnswerRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateSubmitAnswerRequest(request);
+
+        var (participant, session) = await LoadParticipantWithSessionGraphAsync(request.ParticipantId, cancellationToken);
+
+        EnsureQuestionOpenState(session);
+        var currentQuestion = EnsureCurrentQuestionConsistency(session, request.QuestionId);
+        var selectedOption = FindOptionInCurrentQuestion(session, request.OptionId);
+
+        var existingAnswer = await _sessionAnswerRepository
+            .GetByParticipantAndQuestionAsync(participant.Id, currentQuestion.Id, cancellationToken);
+        if (existingAnswer is not null)
+        {
+            throw new BusinessValidationException("You have already submitted an answer for this question.");
+        }
+
+        var answer = new SessionAnswer
+        {
+            QuizSessionId = session.Id,
+            SessionParticipantId = participant.Id,
+            QuizQuestionId = currentQuestion.Id,
+            QuestionOptionId = selectedOption.Id,
+            SubmittedAtUtc = DateTime.UtcNow,
+            Status = SubmissionStatus.Accepted,
+            IsCorrect = selectedOption.IsCorrect,
+            AwardedPoints = 0,
+        };
+
+        var wasSaved = await _sessionAnswerRepository.TryAddAsync(answer, cancellationToken);
+        if (!wasSaved)
+        {
+            throw new BusinessValidationException("You have already submitted an answer for this question.");
+        }
+
+        return MapToSubmitAnswerResultDto(answer);
     }
 
     private static void ValidateJoinRequest(JoinSessionByPinRequest request)
@@ -266,14 +340,19 @@ public class ParticipantSessionService : IParticipantSessionService
         return option;
     }
 
-    private async Task EnsureDisplayNameIsUniqueAsync(int sessionId, string displayName, CancellationToken cancellationToken)
+    private async Task EnsureDisplayNameIsUniqueAsync(int sessionId, string normalizedDisplayName,
+        CancellationToken cancellationToken)
     {
         if (sessionId <= 0)
         {
             throw new BusinessValidationException("Session ID must be a positive number.");
         }
 
-        var normalizedDisplayName = NormalizeDisplayName(displayName);
+        if (string.IsNullOrWhiteSpace(normalizedDisplayName))
+        {
+            throw new BusinessValidationException("Display name is required.");
+        }
+
         var existingParticipant = await _participantRepository
             .GetBySessionAndNameAsync(sessionId, normalizedDisplayName, cancellationToken);
 
