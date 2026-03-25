@@ -256,8 +256,8 @@ Megjegyzes:
 - [x] 2. service helper-ek megirasa (validalas, load, ensure)
 - [x] 3. Join use case implementacio
 - [x] 4. Current question use case implementacio
-- [ ] 5. Submit answer use case implementacio
-- [ ] 6. repository `TryAddAsync` a `SessionAnswer`-hoz
+- [x] 5. Submit answer use case implementacio
+- [x] 6. repository `TryAddAsync` a `SessionAnswer`-hoz
 - [ ] 7. endpoint wiring
 - [ ] 8. integration tesztek
 
