@@ -22,11 +22,11 @@ public class ParticipantRepository : IParticipantRepository
 
     public async Task<SessionParticipant?> GetBySessionAndNameAsync(int sessionId, string displayName, CancellationToken cancellationToken = default)
     {
-        var normalizedDisplayName = displayName.Trim().ToLower();
+        var normalizedDisplayName = displayName.Trim();
 
         return await _context.SessionParticipants
             .FirstOrDefaultAsync(x => x.QuizSessionId == sessionId
-                                      && x.DisplayName.Trim().ToLower() == normalizedDisplayName,
+                                      && x.DisplayName == normalizedDisplayName,
                 cancellationToken);
     }
 
