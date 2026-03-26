@@ -8,7 +8,7 @@ obj/
 *.shellbuffer
 appsettings.Development.json
 
-# --- Angular / Node ---
+# --- React / Node ---
 node_modules/
 .angular/
 dist/
@@ -16,6 +16,10 @@ dist/
 .env
 npm-debug.log*
 yarn-error.log*
+.env
+.env.local
+.env.*.local
+*.g.props
 
 # --- OS specifikus ---
 .DS_Store
