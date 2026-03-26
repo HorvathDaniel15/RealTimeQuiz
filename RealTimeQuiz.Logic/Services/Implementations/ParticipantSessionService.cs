@@ -47,7 +47,11 @@ public class ParticipantSessionService : IParticipantSessionService
             TotalScore = 0,
         };
 
-        await _participantRepository.AddAsync(participant, cancellationToken);
+        var wasSaved = await _participantRepository.TryAddAsync(participant, cancellationToken);
+        if (!wasSaved)
+        {
+            throw new BusinessValidationException("The selected display name is already in use in this session.");
+        }
 
         return MapToJoinSessionResultDto(participant, session);
     }
@@ -82,7 +86,7 @@ public class ParticipantSessionService : IParticipantSessionService
 
         EnsureQuestionOpenState(session);
         var currentQuestion = EnsureCurrentQuestionConsistency(session, request.QuestionId);
-        var selectedOption = FindOptionInCurrentQuestion(session, request.OptionId);
+        var selectedOption = FindOptionInCurrentQuestion(currentQuestion, request.OptionId);
 
         var existingAnswer = await _sessionAnswerRepository
             .GetByParticipantAndQuestionAsync(participant.Id, currentQuestion.Id, cancellationToken);
@@ -293,29 +297,13 @@ public class ParticipantSessionService : IParticipantSessionService
         return currentQuestion;
     }
 
-    private static QuestionOption FindOptionInCurrentQuestion(QuizSession session, int optionId)
+    private static QuestionOption FindOptionInCurrentQuestion(QuizQuestion currentQuestion, int optionId)
     {
         if (optionId <= 0)
         {
             throw new BusinessValidationException("Option ID must be a positive number.");
         }
 
-        if (session is null)
-        {
-            throw new BusinessValidationException("Session cannot be null.");
-        }
-
-        if (!session.CurrentQuestionId.HasValue)
-        {
-            throw new BusinessValidationException("No current question is selected for this session.");
-        }
-
-        if (session.Quiz is null || session.Quiz.Questions is null)
-        {
-            throw new BusinessValidationException("The loaded session is missing quiz question data.");
-        }
-
-        var currentQuestion = session.Quiz.Questions.FirstOrDefault(q => q.Id == session.CurrentQuestionId.Value);
         if (currentQuestion is null)
         {
             throw new BusinessValidationException("The current question is not part of the loaded quiz.");
@@ -393,6 +381,11 @@ public class ParticipantSessionService : IParticipantSessionService
 
     private static ParticipantCurrentQuestionDto MapToParticipantCurrentQuestionDto(QuizSession session, QuizQuestion question)
     {
+        if (!session.QuestionOpenedAtUtc.HasValue)
+        {
+            throw new BusinessValidationException("Question opened timestamp is missing for a question-open session.");
+        }
+
         return new ParticipantCurrentQuestionDto
         {
             SessionId = session.Id,
@@ -401,7 +394,7 @@ public class ParticipantSessionService : IParticipantSessionService
             Text = question.Text,
             ImageUrl = question.ImageUrl,
             TimeLimitSeconds = question.TimeLimitSeconds,
-            OpenedAtUtc = session.QuestionOpenedAtUtc ?? DateTime.UtcNow,
+            OpenedAtUtc = session.QuestionOpenedAtUtc.Value,
             Options = question.Options
                 .OrderBy(x => x.OrderIndex)
                 .ThenBy(x => x.Id)

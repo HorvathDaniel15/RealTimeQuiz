@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using RealTimeQuiz.Data.Interfaces;
 using RealTimeQuiz.Model.Entities;
 
@@ -44,9 +45,38 @@ public class ParticipantRepository : IParticipantRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<bool> TryAddAsync(SessionParticipant participant, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _context.SessionParticipants.AddAsync(participant, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (DbUpdateException ex) when (IsSessionDisplayNameUniqueConstraintViolation(ex))
+        {
+            // Keep context clean after failed insert so the caller can continue safely.
+            _context.Entry(participant).State = EntityState.Detached;
+            return false;
+        }
+    }
+
     public async Task UpdateAsync(SessionParticipant participant, CancellationToken cancellationToken = default)
     {
          _context.SessionParticipants.Update(participant);
          await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private static bool IsSessionDisplayNameUniqueConstraintViolation(DbUpdateException exception)
+    {
+        if (exception.InnerException is not PostgresException postgresException)
+        {
+            return false;
+        }
+
+        return postgresException.SqlState == PostgresErrorCodes.UniqueViolation
+               && string.Equals(postgresException.ConstraintName,
+                   "IX_SessionParticipants_QuizSessionId_DisplayName",
+                   StringComparison.Ordinal);
     }
 }

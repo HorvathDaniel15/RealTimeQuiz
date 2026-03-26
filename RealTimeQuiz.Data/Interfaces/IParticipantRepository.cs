@@ -9,5 +9,6 @@ public interface IParticipantRepository
     Task<SessionParticipant?> GetBySessionAndNameAsync(int sessionId, string displayName, CancellationToken cancellationToken = default);
     Task<List<SessionParticipant>> GetBySessionAsync(int sessionId, CancellationToken cancellationToken = default);
     Task AddAsync(SessionParticipant participant, CancellationToken cancellationToken = default);
+    Task<bool> TryAddAsync(SessionParticipant participant, CancellationToken cancellationToken = default);
     Task UpdateAsync(SessionParticipant participant, CancellationToken cancellationToken = default);
 }
