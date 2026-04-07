@@ -9,6 +9,8 @@ using RealTimeQuiz.WebAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const string DevCorsPolicy = "DevCorsPolicy";
+
 // Database
 builder.Services.AddDbContext<AppDbContext>(options => 
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -44,6 +46,16 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddProblemDetails();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(DevCorsPolicy, policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173", "https://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -84,6 +96,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(DevCorsPolicy);
 
 // Global exception handling before endpoints
 app.UseMiddleware<GlobalExceptionMiddleware>();
