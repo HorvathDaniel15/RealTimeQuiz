@@ -4,6 +4,7 @@ using RealTimeQuiz.Data.Interfaces;
 using RealTimeQuiz.Data.Repositories;
 using RealTimeQuiz.Logic.Services.Implementations;
 using RealTimeQuiz.Logic.Services.Interfaces;
+using RealTimeQuiz.Model.Entities;
 using RealTimeQuiz.WebAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,6 +50,31 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Ensure DB schema is up-to-date and seed a stable demo owner for MVP flows.
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+
+    const string demoOwnerId = "demo-admin-1";
+    var hasDemoOwner = await dbContext.Users.AnyAsync(x => x.Id == demoOwnerId);
+
+    if (!hasDemoOwner)
+    {
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = demoOwnerId,
+            UserName = "demo.admin",
+            NormalizedUserName = "DEMO.ADMIN",
+            Email = "demo-admin@local.test",
+            NormalizedEmail = "DEMO-ADMIN@LOCAL.TEST",
+            EmailConfirmed = true
+        });
+
+        await dbContext.SaveChangesAsync();
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
