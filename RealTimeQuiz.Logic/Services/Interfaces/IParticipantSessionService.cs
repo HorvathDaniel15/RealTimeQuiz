@@ -17,4 +17,8 @@ public interface IParticipantSessionService
     Task<SubmitAnswerResultDto> SubmitAnswerAsync(
         SubmitAnswerRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<SubmitAnswerResultDto> GetAnswerResultAsync(
+        GetParticipantAnswerResultRequest request,
+        CancellationToken cancellationToken = default);
 }
