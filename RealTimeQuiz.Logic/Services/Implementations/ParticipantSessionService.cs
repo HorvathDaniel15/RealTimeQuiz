@@ -116,6 +116,27 @@ public class ParticipantSessionService : IParticipantSessionService
         return MapToSubmitAnswerResultDto(answer);
     }
 
+    public async Task<SubmitAnswerResultDto> GetAnswerResultAsync(
+        GetParticipantAnswerResultRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateGetAnswerResultRequest(request);
+
+        var (_, session) = await LoadParticipantWithSessionGraphAsync(request.ParticipantId, cancellationToken);
+        EnsureResultReadableState(session);
+        EnsureQuestionBelongsToSession(session, request.QuestionId);
+
+        var answer = await _sessionAnswerRepository
+            .GetByParticipantAndQuestionAsync(request.ParticipantId, request.QuestionId, cancellationToken);
+
+        if (answer is null)
+        {
+            throw new EntityNotFoundException("No submitted answer found for this participant and question.");
+        }
+
+        return MapToSubmitAnswerResultDto(answer);
+    }
+
     private static void ValidateJoinRequest(JoinSessionByPinRequest request)
     {
         if (request is null)
@@ -171,6 +192,31 @@ public class ParticipantSessionService : IParticipantSessionService
         if (request.OptionId <= 0)
         {
             errors.Add("Option ID must be a positive number.");
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new BusinessValidationException(errors);
+        }
+    }
+
+    private static void ValidateGetAnswerResultRequest(GetParticipantAnswerResultRequest request)
+    {
+        if (request is null)
+        {
+            throw new BusinessValidationException("The answer result request cannot be null.");
+        }
+
+        var errors = new List<string>();
+
+        if (request.ParticipantId <= 0)
+        {
+            errors.Add("Participant ID must be a positive number.");
+        }
+
+        if (request.QuestionId <= 0)
+        {
+            errors.Add("Question ID must be a positive number.");
         }
 
         if (errors.Count > 0)
@@ -252,6 +298,38 @@ public class ParticipantSessionService : IParticipantSessionService
         {
             throw new ForbiddenOperationException(
                 $"Cannot submit or fetch question in '{session.State}' state. Allowed state: '{SessionState.QuestionOpen}'.");
+        }
+    }
+
+    private static void EnsureResultReadableState(QuizSession session)
+    {
+        if (session is null)
+        {
+            throw new BusinessValidationException("Session cannot be null.");
+        }
+
+        if (session.State is SessionState.Draft or SessionState.Lobby)
+        {
+            throw new ForbiddenOperationException(
+                $"Cannot fetch answer results in '{session.State}' state. Allowed states: '{SessionState.QuestionOpen}', '{SessionState.QuestionClosed}', '{SessionState.Finished}', '{SessionState.Canceled}'.");
+        }
+    }
+
+    private static void EnsureQuestionBelongsToSession(QuizSession session, int questionId)
+    {
+        if (questionId <= 0)
+        {
+            throw new BusinessValidationException("Question ID must be a positive number.");
+        }
+
+        if (session.Quiz is null || session.Quiz.Questions is null)
+        {
+            throw new BusinessValidationException("The loaded session is missing quiz question data.");
+        }
+
+        if (!session.Quiz.Questions.Any(x => x.Id == questionId && x.QuizId == session.QuizId))
+        {
+            throw new BusinessValidationException("The requested question does not belong to the participant's session.");
         }
     }
 
