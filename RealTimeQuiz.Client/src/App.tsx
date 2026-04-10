@@ -4,6 +4,8 @@ import OwnerSetupPage from "./pages/OwnerSetupPage";
 import AdminQuizListPage from "./pages/AdminQuizListPage";
 import AdminQuizDetailsPage from "./pages/AdminQuizDetailsPage";
 import AdminSessionControlPage from "./pages/AdminSessionControlPage";
+import ParticipantJoinPage from "./pages/ParticipantJoinPage";
+import ParticipantSessionPage from "./pages/ParticipantSessionPage";
 
 function RequireOwner({ children }: { children: ReactNode }) {
     const location = useLocation();
@@ -20,6 +22,8 @@ export default function App() {
     return (
         <Routes>
             <Route path="/owner-setup" element={<OwnerSetupPage />} />
+            <Route path="/participant/join" element={<ParticipantJoinPage />} />
+            <Route path="/participant/session/:participantId" element={<ParticipantSessionPage />} />
 
             <Route
                 path="/admin/quizzes"
