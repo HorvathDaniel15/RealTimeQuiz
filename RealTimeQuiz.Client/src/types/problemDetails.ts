@@ -8,15 +8,36 @@ export type ProblemDetails = {
     errors?: Record<string, string[]>;
 };
 
+function flattenValidationErrors(errors?: Record<string, string[]>): string[] {
+    if (!errors) return [];
+
+    return Object.entries(errors).flatMap(([field, messages]) =>
+        messages.map((message) => `${field}: ${message}`)
+    );
+}
+
 export function toErrorMessage(err: unknown): string {
-    if (!err || typeof err !== "object") return "Unknown error";
+    if (!err) return "Unknown error";
+    if (err instanceof Error) return err.message || "Unexpected error";
+    if (typeof err !== "object") return String(err);
 
     const p = err as ProblemDetails;
-    if (p.errors) {
-        return Object.entries(p.errors)
-            .map(([k, v]) => `${k}: ${v.join(", ")}`)
-            .join(" | ");
+    const validationLines = flattenValidationErrors(p.errors);
+
+    const header = [
+        p.status ? `[${p.status}]` : null,
+        p.title,
+        p.detail,
+    ]
+        .filter((part): part is string => Boolean(part && part.trim()))
+        .join(" ");
+
+    if (header && validationLines.length > 0) {
+        return `${header} | ${validationLines.join(" | ")}`;
     }
 
-    return p.detail || p.title || "Unexpected error";
+    if (header) return header;
+    if (validationLines.length > 0) return validationLines.join(" | ");
+
+    return "Unexpected error";
 }

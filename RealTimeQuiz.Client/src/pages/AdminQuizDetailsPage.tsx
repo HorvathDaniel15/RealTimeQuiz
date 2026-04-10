@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { adminApi, type QuizDetailsDto } from "../api/adminApi";
+import { toErrorMessage } from "../types/problemDetails";
 
 export default function AdminQuizDetailsPage() {
     const { quizId } = useParams<{ quizId: string }>();
@@ -20,8 +21,8 @@ export default function AdminQuizDetailsPage() {
             try {
                 const data = await adminApi.getQuizById(Number(quizId));
                 setQuiz(data);
-            } catch (e: any) {
-                setError(e?.message ?? "Nem sikerült betölteni a kvízt.");
+            } catch (e: unknown) {
+                setError(toErrorMessage(e));
             } finally {
                 setLoading(false);
             }
@@ -38,8 +39,8 @@ export default function AdminQuizDetailsPage() {
         try {
             const session = await adminApi.createSession({ quizId: quiz.id });
             navigate(`/admin/sessions/${session.id}`);
-        } catch (e: any) {
-            setError(e?.message ?? "Session létrehozása sikertelen.");
+        } catch (e: unknown) {
+            setError(toErrorMessage(e));
         } finally {
             setBusy(false);
         }

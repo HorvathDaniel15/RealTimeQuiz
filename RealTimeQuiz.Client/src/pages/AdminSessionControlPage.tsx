@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { adminApi, type SessionDto } from "../api/adminApi";
+import { toErrorMessage } from "../types/problemDetails";
 
 function stateLabel(state: number): string {
     switch (state) {
@@ -30,8 +31,8 @@ export default function AdminSessionControlPage() {
         try {
             const data = await adminApi.getSessionById(numericSessionId);
             setSession(data);
-        } catch (e: any) {
-            setError(e?.message ?? "Session betöltése sikertelen.");
+        } catch (e: unknown) {
+            setError(toErrorMessage(e));
         } finally {
             setLoading(false);
         }
@@ -49,8 +50,8 @@ export default function AdminSessionControlPage() {
         try {
             const updated = await action();
             setSession(updated);
-        } catch (e: any) {
-            setError(e?.message ?? `Sikertelen művelet: ${name}`);
+        } catch (e: unknown) {
+            setError(toErrorMessage(e));
         } finally {
             setBusyAction(null);
         }
