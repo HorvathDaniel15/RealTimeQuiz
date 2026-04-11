@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { adminApi, type QuizDetailsDto } from "../api/adminApi";
 import { toErrorMessage } from "../types/problemDetails";
+import "./admin.css";
 
 export default function AdminQuizDetailsPage() {
     const { quizId } = useParams<{ quizId: string }>();
@@ -50,35 +51,42 @@ export default function AdminQuizDetailsPage() {
     if (!quiz) return <div>Nincs ilyen kvíz.</div>;
 
     return (
-        <div style={{ padding: 16 }}>
-            <Link to="/admin/quizzes">← Vissza a listához</Link>
-            <h1>{quiz.title}</h1>
-            <p>{quiz.description || "Nincs leírás."}</p>
+        <div className="admin-page">
+            <div className="admin-shell">
+                <section className="admin-card">
+                    <Link className="admin-link" to="/admin/quizzes">← Vissza a listához</Link>
+                    <h1 className="admin-title">{quiz.title}</h1>
+                    <p className="admin-subtitle">{quiz.description || "Nincs leiras."}</p>
+                    <div className="admin-actions admin-actions-top">
+                        <button className="admin-button" onClick={handleCreateSession} disabled={busy}>
+                            {busy ? "Letrehozas..." : "Session inditasa"}
+                        </button>
+                    </div>
+                </section>
 
-            <button onClick={handleCreateSession} disabled={busy}>
-                {busy ? "Létrehozás..." : "Session indítása"}
-            </button>
+                {error && <p className="admin-error">{error}</p>}
 
-            {error && <p style={{ color: "crimson" }}>{error}</p>}
+                <section className="admin-card">
+                    <h2>Kerdesek</h2>
+                    {quiz.questions.length === 0 && <p className="admin-muted">Meg nincs kerdes.</p>}
 
-            <h2>Kérdések</h2>
-            {quiz.questions.length === 0 && <p>Még nincs kérdés.</p>}
-
-            {quiz.questions.map((q) => (
-                <div key={q.id} style={{ border: "1px solid #ddd", margin: "12px 0", padding: 12 }}>
-                    <strong>
-                        {q.orderIndex + 1}. {q.text}
-                    </strong>
-                    <div>Időlimit: {q.timeLimitSeconds} sec</div>
-                    <ul>
-                        {q.options.map((o) => (
-                            <li key={o.id}>
-                                {o.orderIndex + 1}. {o.text}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            ))}
+                    {quiz.questions.map((q) => (
+                        <div key={q.id} className="admin-question-card">
+                            <strong>
+                                {q.orderIndex + 1}. {q.text}
+                            </strong>
+                            <div className="admin-muted">Idolimit: {q.timeLimitSeconds} sec</div>
+                            <ul className="admin-list">
+                                {q.options.map((o) => (
+                                    <li key={o.id}>
+                                        {o.orderIndex + 1}. {o.text}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                </section>
+            </div>
         </div>
     );
 }

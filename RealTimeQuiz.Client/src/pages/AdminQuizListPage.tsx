@@ -2,6 +2,7 @@ import { useEffect, useState, type SubmitEvent } from "react";
 import { Link } from "react-router-dom";
 import { adminApi, type QuizListItem } from "../api/adminApi";
 import { toErrorMessage } from "../types/problemDetails";
+import "./admin.css";
 
 type DraftOption = {
     text: string;
@@ -166,104 +167,132 @@ export default function AdminQuizListPage() {
     }
 
     return (
-        <div>
-            <h2>My Quizzes</h2>
-            <button onClick={load}>Refresh</button>
+        <div className="admin-page">
+            <div className="admin-shell">
+                <section className="admin-card">
+                    <h1 className="admin-title">My quizzes</h1>
+                    <p className="admin-subtitle">Keszits uj kvizt, vagy nyiss meg egy mar letezot.</p>
+                    <div className="admin-actions admin-actions-top">
+                        <button className="admin-button admin-button-secondary" onClick={load}>Refresh</button>
+                    </div>
+                </section>
 
-            <form onSubmit={createQuiz} style={{ margin: "12px 0", display: "grid", gap: 8, maxWidth: 480 }}>
-                <input
-                    placeholder="Quiz title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                />
-                <textarea
-                    placeholder="Description (optional)"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                />
-
-                <h3>Questions</h3>
-                {questions.map((q, qi) => (
-                    <div key={qi} style={{ border: "1px solid #ddd", padding: 10, borderRadius: 4 }}>
-                        <div style={{ display: "grid", gap: 6 }}>
-                            <strong>{qi + 1}. kérdés</strong>
+                <section className="admin-card">
+                    <form onSubmit={createQuiz} className="admin-form-grid">
+                        <label className="admin-field">
+                            <span className="admin-label">Quiz title</span>
                             <input
-                                placeholder="Question text"
-                                value={q.text}
-                                onChange={(e) => updateQuestion(qi, { text: e.target.value })}
+                                className="admin-input"
+                                placeholder="Quiz title"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
                             />
-                            <input
-                                type="number"
-                                min={5}
-                                max={600}
-                                value={q.timeLimitSeconds}
-                                onChange={(e) =>
-                                    updateQuestion(qi, {
-                                        timeLimitSeconds: Number(e.target.value || 0),
-                                    })
-                                }
-                            />
+                        </label>
 
-                            <strong>Opciók (jelöld a helyeset):</strong>
-                            {q.options.map((opt, oi) => (
-                                <div key={oi} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                    <input
-                                        type="radio"
-                                        name={`correct-${qi}`}
-                                        checked={q.correctOptionIndex === oi}
-                                        onChange={() => updateQuestion(qi, { correctOptionIndex: oi })}
-                                    />
-                                    <input
-                                        placeholder={`Option ${oi + 1}`}
-                                        value={opt.text}
-                                        onChange={(e) => updateOption(qi, oi, e.target.value)}
-                                        style={{ flex: 1 }}
-                                    />
+                        <label className="admin-field">
+                            <span className="admin-label">Description</span>
+                            <textarea
+                                className="admin-textarea"
+                                placeholder="Description (optional)"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                            />
+                        </label>
+
+                        <h3>Questions</h3>
+                        {questions.map((q, qi) => (
+                            <div key={qi} className="admin-question-card">
+                                <strong>{qi + 1}. kerdes</strong>
+
+                                <input
+                                    className="admin-input"
+                                    placeholder="Question text"
+                                    value={q.text}
+                                    onChange={(e) => updateQuestion(qi, { text: e.target.value })}
+                                />
+
+                                <input
+                                    className="admin-input"
+                                    type="number"
+                                    min={5}
+                                    max={600}
+                                    value={q.timeLimitSeconds}
+                                    onChange={(e) =>
+                                        updateQuestion(qi, {
+                                            timeLimitSeconds: Number(e.target.value || 0),
+                                        })
+                                    }
+                                />
+
+                                <strong>Opciok (jelold a helyeset):</strong>
+                                {q.options.map((opt, oi) => (
+                                    <div key={oi} className="admin-option-row">
+                                        <input
+                                            type="radio"
+                                            name={`correct-${qi}`}
+                                            checked={q.correctOptionIndex === oi}
+                                            onChange={() => updateQuestion(qi, { correctOptionIndex: oi })}
+                                        />
+                                        <input
+                                            className="admin-input admin-option-input"
+                                            placeholder={`Option ${oi + 1}`}
+                                            value={opt.text}
+                                            onChange={(e) => updateOption(qi, oi, e.target.value)}
+                                        />
+                                        <button
+                                            className="admin-button admin-button-secondary"
+                                            type="button"
+                                            onClick={() => removeOption(qi, oi)}
+                                            disabled={q.options.length <= 2}
+                                        >
+                                            Remove option
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <div className="admin-actions">
+                                    <button className="admin-button admin-button-secondary" type="button" onClick={() => addOption(qi)}>
+                                        Add option
+                                    </button>
                                     <button
+                                        className="admin-button admin-button-secondary"
                                         type="button"
-                                        onClick={() => removeOption(qi, oi)}
-                                        disabled={q.options.length <= 2}
+                                        onClick={() => removeQuestion(qi)}
+                                        disabled={questions.length <= 1}
                                     >
-                                        Remove option
+                                        Remove question
                                     </button>
                                 </div>
-                            ))}
-
-                            <div style={{ display: "flex", gap: 8 }}>
-                                <button type="button" onClick={() => addOption(qi)}>
-                                    Add option
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => removeQuestion(qi)}
-                                    disabled={questions.length <= 1}
-                                >
-                                    Remove question
-                                </button>
                             </div>
+                        ))}
+
+                        <div className="admin-actions">
+                            <button className="admin-button admin-button-secondary" type="button" onClick={addQuestion}>
+                                Add question
+                            </button>
+
+                            <button className="admin-button" type="submit" disabled={createBusy}>
+                                {createBusy ? "Creating..." : "Create Quiz"}
+                            </button>
                         </div>
-                    </div>
-                ))}
+                    </form>
+                </section>
 
-                <button type="button" onClick={addQuestion}>
-                    Add question
-                </button>
+                {error && <p className="admin-error">{error}</p>}
 
-                <button type="submit" disabled={createBusy}>
-                    {createBusy ? "Creating..." : "Create Quiz"}
-                </button>
-            </form>
-
-            {error && <p style={{ color: "crimson" }}>{error}</p>}
-            <ul>
-                {items.map((q) => (
-                    <li key={q.id}>
-                        <Link to={`/admin/quizzes/${q.id}`}>
-                            #{q.id} - {q.title}
-                        </Link>
-                    </li>
-                ))}
-            </ul>
+                <section className="admin-card">
+                    <h2>Quiz list</h2>
+                    <ul className="admin-list">
+                        {items.map((q) => (
+                            <li key={q.id}>
+                                <Link className="admin-link" to={`/admin/quizzes/${q.id}`}>
+                                    #{q.id} - {q.title}
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            </div>
         </div>
     );
 }

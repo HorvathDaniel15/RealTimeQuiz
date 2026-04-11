@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { adminApi, type SessionDto } from "../api/adminApi";
 import { toErrorMessage } from "../types/problemDetails";
+import "./admin.css";
 
 function stateLabel(state: number): string {
     switch (state) {
@@ -61,60 +62,73 @@ export default function AdminSessionControlPage() {
     if (!session) return <div>Nincs session adat.</div>;
 
     return (
-        <div style={{ padding: 16 }}>
-            <Link to={`/admin/quizzes/${session.quizId}`}>← Vissza a kvízhez</Link>
-            <h1>Session #{session.id}</h1>
+        <div className="admin-page">
+            <div className="admin-shell">
+                <section className="admin-card">
+                    <Link className="admin-link" to={`/admin/quizzes/${session.quizId}`}>← Vissza a kvízhez</Link>
+                    <h1 className="admin-title">Session #{session.id}</h1>
 
-            <p><strong>PIN:</strong> {session.joinPin}</p>
-            <p><strong>Állapot:</strong> {stateLabel(session.state)}</p>
-            <p><strong>Aktuális kérdés:</strong> {session.currentQuestionText ?? "-"}</p>
-            <p><strong>Kérdés index:</strong> {session.currentQuestionOrderIndex ?? "-"}</p>
+                    <div className="admin-kpi">
+                        <span><strong>PIN:</strong> {session.joinPin}</span>
+                        <span><strong>Allapot:</strong> {stateLabel(session.state)}</span>
+                        <span><strong>Aktualis kerdes:</strong> {session.currentQuestionText ?? "-"}</span>
+                        <span><strong>Kerdes index:</strong> {session.currentQuestionOrderIndex ?? "-"}</span>
+                    </div>
+                </section>
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button
-                    disabled={!!busyAction}
-                    onClick={() => runAction("openLobby", () => adminApi.openLobby(session.id))}
-                >
-                    Lobby megnyitás
-                </button>
+                <section className="admin-card">
+                    <div className="admin-actions">
+                        <button
+                            className="admin-button"
+                            disabled={!!busyAction}
+                            onClick={() => runAction("openLobby", () => adminApi.openLobby(session.id))}
+                        >
+                            Lobby megnyitas
+                        </button>
 
-                <button
-                    disabled={!!busyAction}
-                    onClick={() => runAction("startSession", () => adminApi.startSession(session.id))}
-                >
-                    Indítás
-                </button>
+                        <button
+                            className="admin-button"
+                            disabled={!!busyAction}
+                            onClick={() => runAction("startSession", () => adminApi.startSession(session.id))}
+                        >
+                            Inditas
+                        </button>
 
-                <button
-                    disabled={!!busyAction}
-                    onClick={() =>
-                        runAction("closeCurrentQuestion", () => adminApi.closeCurrentQuestion(session.id))
-                    }
-                >
-                    Kérdés lezárása
-                </button>
+                        <button
+                            className="admin-button"
+                            disabled={!!busyAction}
+                            onClick={() =>
+                                runAction("closeCurrentQuestion", () => adminApi.closeCurrentQuestion(session.id))
+                            }
+                        >
+                            Kerdes lezarasa
+                        </button>
 
-                <button
-                    disabled={!!busyAction}
-                    onClick={() => runAction("advance", () => adminApi.advance(session.id))}
-                >
-                    Következő kérdés
-                </button>
+                        <button
+                            className="admin-button"
+                            disabled={!!busyAction}
+                            onClick={() => runAction("advance", () => adminApi.advance(session.id))}
+                        >
+                            Kovetkezo kerdes
+                        </button>
 
-                <button
-                    disabled={!!busyAction}
-                    onClick={() => runAction("finish", () => adminApi.finish(session.id))}
-                >
-                    Befejezés
-                </button>
+                        <button
+                            className="admin-button"
+                            disabled={!!busyAction}
+                            onClick={() => runAction("finish", () => adminApi.finish(session.id))}
+                        >
+                            Befejezes
+                        </button>
 
-                <button disabled={!!busyAction} onClick={loadSession}>
-                    Frissítés
-                </button>
+                        <button className="admin-button admin-button-secondary" disabled={!!busyAction} onClick={loadSession}>
+                            Frissites
+                        </button>
+                    </div>
+                </section>
+
+                {busyAction && <section className="admin-card admin-muted">Futo muvelet: {busyAction}</section>}
+                {error && <p className="admin-error">{error}</p>}
             </div>
-
-            {busyAction && <p>Futó művelet: {busyAction}</p>}
-            {error && <p style={{ color: "crimson" }}>{error}</p>}
         </div>
     );
 }
