@@ -1,3 +1,5 @@
+using JWTOauth2.AspNetCore.Extensions;
+using JWTOauth2.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RealTimeQuiz.Data.Interfaces;
@@ -56,6 +58,23 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+
+// ===== JWT/OAuth2 infra =====
+// 1) AuthN + AuthZ
+builder.Services.AddJWTOauth2(options =>
+{
+    var auth = builder.Configuration.GetSection("Auth");
+    options.Issuer = auth["Issuer"]!;
+    options.Audience = auth["Audience"]!;
+    options.AccessTokenSecret = auth["AccessTokenSecret"]!;
+    options.RefreshTokenSecret = auth["RefreshTokenSecret"]!;
+    options.AccessTokenExpiration = TimeSpan.FromMinutes(int.Parse(auth["AccessTokenMinutes"]!));
+    options.RefreshTokenExpiration = TimeSpan.FromDays(int.Parse(auth["RefreshTokenDays"]!));
+});
+
+builder.Services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
+
+
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -102,6 +121,8 @@ app.UseCors(DevCorsPolicy);
 // Global exception handling before endpoints
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
 await app.RunAsync();
