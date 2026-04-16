@@ -73,6 +73,7 @@ builder.Services.AddJWTOauth2(options =>
 });
 
 builder.Services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 
 // Add services to the container.

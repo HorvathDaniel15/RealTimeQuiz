@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
-using System.Runtime.InteropServices.JavaScript;
 using System.Security.Claims;
 using JWTOauth2.Core.Interfaces;
 using JWTOauth2.Core.Options;
@@ -37,22 +36,156 @@ public class AuthService : IAuthService
     
     public async Task<RegisterResult> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        ValidateRegisterRequest(request);
+        
+        var email = request.Email.Trim();
+        var existnig = await _userManager.FindByEmailAsync(email);
+        if (existnig is not null)
+        {
+            throw new BusinessValidationException("A user with this email already exists.");
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = string.IsNullOrWhiteSpace(request.UserName) ? email : request.UserName,
+            Email = request.Email,
+        };
+        
+        var createResult = await _userManager.CreateAsync(user, request.Password);
+        if (!createResult.Succeeded)
+        {
+            throw new BusinessValidationException(createResult.Errors.Select(e => e.Description));
+        }
+
+        return new RegisterResult
+        {
+            UserId = user.Id,
+            Email = user.Email ?? email,
+        };
     }
 
-    public Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
+    public async Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        ValidateLoginRequest(request);
+        
+        var email = request.Email.Trim();
+        var user = await _userManager.FindByEmailAsync(email);
+
+        if (user is null || !await _userManager.CheckPasswordAsync(user, request.Password))
+        {
+            throw new ForbiddenOperationException("Invalid credentials.");
+        }
+        
+        var claims = await BuildUserClaimsAsync(user);
+        var tokenPair = _tokenService.GenerateTokenPair(claims, user.Id);
+
+        await _refreshTokenStore.StoreAsync(
+            user.Id,
+            tokenPair.RefreshTokenJti,
+            DateTime.UtcNow.Add(_jwtOptions.RefreshTokenExpiration));
+
+        return new LoginResult
+        {
+            AccessToken = tokenPair.AccessToken,
+            RefreshToken = tokenPair.RefreshToken,
+            AccessTokenExpiresAtUtc = tokenPair.AccessTokenExpiresAt,
+        };
     }
 
-    public Task<RefreshResult> RefreshAsync(RefreshRequest request, CancellationToken cancellationToken = default)
+    public async Task<RefreshResult> RefreshAsync(RefreshRequest request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            throw new BusinessValidationException("Refresh token is required.");
+        }
+        
+        var principal = _tokenService.ValidateRefreshToken(request.RefreshToken);
+        if (principal is null)
+        {
+            throw new ForbiddenOperationException("Invalid or expired refresh token.");
+        }
+        
+        var userId =
+            principal.FindFirstValue(JwtRegisteredClaimNames.Sub) ??
+            principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        
+        var oldJti = principal.FindFirstValue(JwtRegisteredClaimNames.Jti);
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(oldJti))
+        {
+            throw new ForbiddenOperationException("Invalid refresh token claims.");
+        }
+        
+        var stillValid = await _refreshTokenStore.IsValidAsync(userId, oldJti);
+        if (!stillValid)
+        {
+            await _refreshTokenStore.RevokeAllForUserAsync(userId);
+            throw new ForbiddenOperationException("Refresh token reuse detected. All session revoked.");
+        }
+        
+        await _refreshTokenStore.RevokeAsync(userId, oldJti);
+        
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            throw new ForbiddenOperationException("User no longer exists.");
+        }
+        
+        var claims = await BuildUserClaimsAsync(user);
+        var newTokenPair = _tokenService.GenerateTokenPair(claims, user.Id);
+        
+        await _refreshTokenStore.StoreAsync(
+            user.Id,
+            newTokenPair.RefreshTokenJti,
+            DateTime.UtcNow.Add(_jwtOptions.RefreshTokenExpiration));
+
+        return new RefreshResult
+        {
+            AccessToken = newTokenPair.AccessToken,
+            RefreshToken = newTokenPair.RefreshToken,
+            AccessTokenExpiresAtUtc = newTokenPair.AccessTokenExpiresAt,
+        };
     }
 
-    public Task LogoutAsync(LogoutRequest request, CancellationToken cancellationToken = default)
+    public async Task LogoutAsync(LogoutRequest request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (request is null || string.IsNullOrWhiteSpace(request.UserId))
+        {
+            throw new BusinessValidationException("User ID is required.");
+        }
+
+        if (request.LogoutAllDevices)
+        {
+            await _refreshTokenStore.RevokeAllForUserAsync(request.UserId.Trim());
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            throw new BusinessValidationException("Refresh token is required.");
+        }
+        
+        var principal = _tokenService.ValidateRefreshToken(request.RefreshToken);
+        if (principal is null)
+        {
+            return;
+        }
+        
+        var userId =
+            principal.FindFirstValue(JwtRegisteredClaimNames.Sub) ??
+            principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        
+        var jti = principal.FindFirstValue(JwtRegisteredClaimNames.Jti);
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(jti))
+        {
+            return;
+        }
+
+        if (!string.Equals(userId, request.UserId.Trim(), StringComparison.Ordinal))
+        {
+            throw new ForbiddenOperationException("Cannot revoke token of another user.");
+        }
+
+        await _refreshTokenStore.RevokeAsync(userId, jti);
     }
 
     private static void ValidateRegisterRequest(RegisterRequest request)
