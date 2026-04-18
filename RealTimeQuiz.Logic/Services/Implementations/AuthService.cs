@@ -146,16 +146,16 @@ public class AuthService : IAuthService
         };
     }
 
-    public async Task LogoutAsync(LogoutRequest request, CancellationToken cancellationToken = default)
+    public async Task LogoutAsync(string currentUserId, LogoutRequest request, CancellationToken cancellationToken = default)
     {
-        if (request is null || string.IsNullOrWhiteSpace(request.UserId))
+        if (request is null || string.IsNullOrWhiteSpace(currentUserId))
         {
             throw new BusinessValidationException("User ID is required.");
         }
 
         if (request.LogoutAllDevices)
         {
-            await _refreshTokenStore.RevokeAllForUserAsync(request.UserId.Trim());
+            await _refreshTokenStore.RevokeAllForUserAsync(currentUserId);
             return;
         }
 
@@ -167,7 +167,7 @@ public class AuthService : IAuthService
         var principal = _tokenService.ValidateRefreshToken(request.RefreshToken);
         if (principal is null)
         {
-            return;
+            throw new ForbiddenOperationException("Invalid or expired refresh token.");
         }
         
         var userId =
@@ -177,10 +177,10 @@ public class AuthService : IAuthService
         var jti = principal.FindFirstValue(JwtRegisteredClaimNames.Jti);
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(jti))
         {
-            return;
+            throw new ForbiddenOperationException("Invalid refresh token claims.");
         }
 
-        if (!string.Equals(userId, request.UserId.Trim(), StringComparison.Ordinal))
+        if (!string.Equals(userId, currentUserId, StringComparison.Ordinal))
         {
             throw new ForbiddenOperationException("Cannot revoke token of another user.");
         }
