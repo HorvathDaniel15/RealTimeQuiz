@@ -1,18 +1,28 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
-import OwnerSetupPage from "./pages/OwnerSetupPage";
 import AdminQuizListPage from "./pages/AdminQuizListPage";
 import AdminQuizDetailsPage from "./pages/AdminQuizDetailsPage";
 import AdminSessionControlPage from "./pages/AdminSessionControlPage";
 import ParticipantJoinPage from "./pages/ParticipantJoinPage";
 import ParticipantSessionPage from "./pages/ParticipantSessionPage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import { hasAccessToken } from "./state/authStorage";
 
-function RequireOwner({ children }: { children: ReactNode }) {
+function RequireAuth({ children }: { children: ReactNode }) {
     const location = useLocation();
-    const ownerId = localStorage.getItem("ownerId");
-    if (!ownerId) {
+
+    if (!hasAccessToken()) {
         const from = `${location.pathname}${location.search}${location.hash}`;
-        return <Navigate to="/owner-setup" replace state={{ from }} />;
+        return <Navigate to="/login" replace state={{ from }} />;
+    }
+
+    return children;
+}
+
+function RequireGuest({ children }: { children: ReactNode }) {
+    if (hasAccessToken()) {
+        return <Navigate to="/admin/quizzes" replace />;
     }
 
     return children;
@@ -21,38 +31,58 @@ function RequireOwner({ children }: { children: ReactNode }) {
 export default function App() {
     return (
         <Routes>
-            <Route path="/owner-setup" element={<OwnerSetupPage />} />
+            <Route
+                path="/login"
+                element={
+                    <RequireGuest>
+                        <LoginPage />
+                    </RequireGuest>
+                }
+            />
+
+            <Route
+                path="/register"
+                element={
+                    <RequireGuest>
+                        <RegisterPage />
+                    </RequireGuest>
+                }
+            />
+
             <Route path="/participant/join" element={<ParticipantJoinPage />} />
             <Route path="/participant/session/:participantId" element={<ParticipantSessionPage />} />
 
             <Route
                 path="/admin/quizzes"
                 element={
-                    <RequireOwner>
+                    <RequireAuth>
                         <AdminQuizListPage />
-                    </RequireOwner>
+                    </RequireAuth>
                 }
             />
 
             <Route
                 path="/admin/quizzes/:quizId"
                 element={
-                    <RequireOwner>
+                    <RequireAuth>
                         <AdminQuizDetailsPage />
-                    </RequireOwner>
+                    </RequireAuth>
                 }
             />
 
             <Route
                 path="/admin/sessions/:sessionId"
                 element={
-                    <RequireOwner>
+                    <RequireAuth>
                         <AdminSessionControlPage />
-                    </RequireOwner>
+                    </RequireAuth>
                 }
             />
 
-            <Route path="*" element={<Navigate to="/admin/quizzes" replace />} />
+            <Route
+                path="*"
+                element={<Navigate to={hasAccessToken() ? "/admin/quizzes" : "/login"} replace />}
+            />
         </Routes>
     );
 }

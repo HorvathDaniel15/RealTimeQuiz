@@ -1,6 +1,8 @@
 import { useEffect, useState, type SubmitEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { adminApi, type QuizListItem } from "../api/adminApi";
+import { authApi } from "../api/authApi";
+import { clearAuthSession, getRefreshToken } from "../state/authStorage";
 import { toErrorMessage } from "../types/problemDetails";
 import "./admin.css";
 
@@ -25,6 +27,7 @@ function createEmptyQuestion(): DraftQuestion {
 }
 
 export default function AdminQuizListPage() {
+    const navigate = useNavigate();
     const [items, setItems] = useState<QuizListItem[]>([]);
     const [error, setError] = useState("");
     const [createBusy, setCreateBusy] = useState(false);
@@ -166,6 +169,20 @@ export default function AdminQuizListPage() {
         }
     }
 
+    async function handleLogout() {
+        try {
+            await authApi.logout({
+                refreshToken: getRefreshToken() ?? undefined,
+                logoutAllDevices: true,
+            });
+        } catch {
+            // Even if revoke fails, we still clear local state for UI logout.
+        } finally {
+            clearAuthSession();
+            navigate("/login", { replace: true });
+        }
+    }
+
     return (
         <div className="admin-page">
             <div className="admin-shell">
@@ -174,6 +191,7 @@ export default function AdminQuizListPage() {
                     <p className="admin-subtitle">Keszits uj kvizt, vagy nyiss meg egy mar letezot.</p>
                     <div className="admin-actions admin-actions-top">
                         <button className="admin-button admin-button-secondary" onClick={load}>Refresh</button>
+                        <button className="admin-button admin-button-secondary" onClick={handleLogout}>Logout</button>
                     </div>
                 </section>
 
