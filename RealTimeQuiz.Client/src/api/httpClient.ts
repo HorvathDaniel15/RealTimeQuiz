@@ -1,19 +1,25 @@
+import { clearAuthSession, getAccessToken } from "../state/authStorage";
+
 const API_BASE_URL = "https://localhost:7154";
 
 export async function apiFetch<T>(
     path: string,
     init?: RequestInit,
-    requireOwner = false
+    requireAuth = false
 ): Promise<T> {
     const headers = new Headers(init?.headers ?? {});
-    headers.set("Content-Type", "application/json");
 
-    if (requireOwner) {
-        const ownerId = localStorage.getItem("ownerId");
-        if (!ownerId) {
-            throw new Error("Owner ID is missing. Please set it first.");
+    if (init?.body && !headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+    }
+
+    if (requireAuth) {
+        const accessToken = getAccessToken();
+        if (!accessToken) {
+            throw { title: "Unauthorized", status: 401, detail: "Please sign in first." };
         }
-        headers.set("X-Owner-Id", ownerId);
+
+        headers.set("Authorization", `Bearer ${accessToken}`);
     }
 
     const res = await fetch(`${API_BASE_URL}${path}`, {
@@ -23,10 +29,14 @@ export async function apiFetch<T>(
 
     if (!res.ok) {
         const body = await res.json().catch(() => null);
+
+        if (res.status === 401 && requireAuth) {
+            clearAuthSession();
+        }
+
         throw body ?? { title: "Request failed", status: res.status };
     }
 
-    // 204 eseten ne parse-oljon
     if (res.status === 204) return undefined as T;
     return (await res.json()) as T;
 }

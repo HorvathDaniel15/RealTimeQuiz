@@ -1,0 +1,80 @@
+.matrix-terminal {
+  background: #020703;
+  border: 1px solid var(--neon-green);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 18px rgba(57, 255, 20, 0.32);
+}
+
+.matrix-terminal-header {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(57, 255, 20, 0.45);
+  background: rgba(57, 255, 20, 0.08);
+}
+
+.matrix-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.matrix-dot-red {
+  background: #ff5f56;
+}
+
+.matrix-dot-yellow {
+  background: #ffbd2e;
+}
+
+.matrix-dot-green {
+  background: #27c93f;
+}
+
+.matrix-terminal-body {
+  padding: 12px;
+  font-family: "Courier New", Courier, monospace;
+  display: grid;
+  gap: 6px;
+}
+
+.matrix-terminal-line {
+  color: var(--neon-green);
+  opacity: 0;
+  animation: matrix-line-in 0.2s ease-out forwards;
+}
+
+.matrix-terminal-line-success {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px rgba(0, 243, 255, 0.7);
+}
+
+.matrix-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  animation: matrix-cursor-blink 0.9s steps(1, end) infinite;
+}
+
+@keyframes matrix-line-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes matrix-cursor-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
