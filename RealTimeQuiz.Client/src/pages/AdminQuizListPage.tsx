@@ -191,6 +191,7 @@ export default function AdminQuizListPage() {
                     <p className="admin-subtitle">Keszits uj kvizt, vagy nyiss meg egy mar letezot.</p>
                     <div className="admin-actions admin-actions-top">
                         <button className="admin-button admin-button-secondary" onClick={load}>Refresh</button>
+                        <Link className="admin-button admin-button-secondary" to="/participant/join">Join as participant</Link>
                         <button className="admin-button admin-button-secondary" onClick={handleLogout}>Logout</button>
                     </div>
                 </section>
