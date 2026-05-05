@@ -127,6 +127,24 @@
   cursor: not-allowed;
 }
 
+.auth-actions {
+  margin-top: 14px;
+}
+
+.auth-button-secondary {
+  display: inline-block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
+  border-color: rgba(255, 0, 193, 0.8);
+  color: var(--neon-pink);
+}
+
+.auth-button-secondary:hover {
+  background: rgba(255, 0, 193, 0.14);
+}
+
 .auth-footer {
   margin-top: 18px;
   color: var(--text-secondary);

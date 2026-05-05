@@ -134,9 +134,17 @@ export default function LoginPage() {
                 )}
 
                 {!isLoading && (
-                    <p className="auth-footer">
-                        No account yet? <Link className="auth-link" to="/register">Register here</Link>
-                    </p>
+                    <>
+                        <div className="auth-actions">
+                            <Link className="auth-button auth-button-secondary" to="/participant/join">
+                                Continue as guest
+                            </Link>
+                        </div>
+
+                        <p className="auth-footer">
+                            No account yet? <Link className="auth-link" to="/register">Register here</Link>
+                        </p>
+                    </>
                 )}
             </section>
         </div>
