@@ -24,6 +24,7 @@
     <ItemGroup>
       <ProjectReference Include="..\RealTimeQuiz.Data\RealTimeQuiz.Data.csproj" />
       <ProjectReference Include="..\RealTimeQuiz.Logic\RealTimeQuiz.Logic.csproj" />
+      <ProjectReference Include="..\RealTimeQuiz.Shared\RealTimeQuiz.Shared.csproj" />
     </ItemGroup>
 
 </Project>
