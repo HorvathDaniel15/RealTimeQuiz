@@ -10,6 +10,8 @@ using RealTimeQuiz.Logic.Services.Implementations;
 using RealTimeQuiz.Logic.Services.Interfaces;
 using RealTimeQuiz.Model.Entities;
 using RealTimeQuiz.WebAPI.Middleware;
+using RealTimeQuiz.WebAPI.SignalR.Hubs;
+using RealTimeQuiz.WebAPI.SignalR.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +42,7 @@ builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IParticipantSessionService, ParticipantSessionService>();
 
 //Controllers + model validation response (uniform ProblemDetails for 400)
+builder.Services.AddSignalR();
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
     {
@@ -66,7 +69,8 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins("http://localhost:5173", "https://localhost:5173")
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -85,6 +89,7 @@ builder.Services.AddJWTOauth2(options =>
 
 builder.Services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ISessionNotificationService,  SessionNotificationService>();
 
 
 // Add services to the container.
@@ -168,5 +173,6 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<SessionHub>("/session-hub");
 
 await app.RunAsync();
