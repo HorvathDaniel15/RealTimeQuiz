@@ -28,7 +28,7 @@ export function useSignalRHub({
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   
-  // Refs to avoid needing the entire dependency array for callbacks
+  
   const callbacksRef = useRef({
     onParticipantJoined,
     onQuestionStarted,
