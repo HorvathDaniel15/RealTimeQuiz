@@ -10,9 +10,8 @@ import {
     type ParticipantCurrentQuestion,
     type SubmitAnswerResult,
 } from "../types/participant";
+import { useSignalRHub } from "../hooks/useSignalRHub";
 import "./participant.css";
-
-const POLL_INTERVAL_MS = 2500;
 
 function getProblemStatus(err: unknown): number | null {
     if (!err || typeof err !== "object") return null;
@@ -37,6 +36,23 @@ function ParticipantSessionPage() {
 
     const submittedQuestionId = submitResult?.questionId ?? null;
     const hasFinalResult = submitResult?.isCorrect !== null && submitResult?.isCorrect !== undefined;
+
+    const { isConnected } = useSignalRHub({
+        sessionId: storedContext?.sessionId,
+        onQuestionStarted: () => {
+            loadCurrentQuestion(true);
+        },
+        onQuestionClosed: () => {
+            if (submittedQuestionId) {
+                loadResult(submittedQuestionId, true);
+            }
+        },
+        onSessionFinished: () => {
+            setInfo("A játék véget ért.");
+            setCurrentQuestion(null);
+            setSubmitResult(null);
+        },
+    });
 
     const loadCurrentQuestion = useCallback(
         async (silent = false) => {
@@ -95,26 +111,6 @@ function ParticipantSessionPage() {
         loadCurrentQuestion();
     }, [loadCurrentQuestion]);
 
-    useEffect(() => {
-        if (currentQuestion || submitResult) return;
-
-        const id = window.setInterval(() => {
-            loadCurrentQuestion(true);
-        }, POLL_INTERVAL_MS);
-
-        return () => window.clearInterval(id);
-    }, [currentQuestion, submitResult, loadCurrentQuestion]);
-
-    useEffect(() => {
-        if (!submittedQuestionId || hasFinalResult) return;
-
-        const id = window.setInterval(() => {
-            loadResult(submittedQuestionId, true);
-        }, POLL_INTERVAL_MS);
-
-        return () => window.clearInterval(id);
-    }, [submittedQuestionId, hasFinalResult, loadResult]);
-
     async function submitAnswer() {
         if (!currentQuestion || !selectedOptionId) {
             setError("Valassz egy opciot bekuldes elott.");
@@ -168,6 +164,7 @@ function ParticipantSessionPage() {
                     <h1 className="participant-title">Participant Session</h1>
                     <div className="participant-meta">
                         <span><strong>Participant ID:</strong> {numericParticipantId}</span>
+                        <span><strong>SignalR:</strong> <span style={{ color: isConnected ? "green" : "red" }}>{isConnected ? "Connected" : "Disconnected"}</span></span>
                         {storedContext && (
                             <>
                                 <span><strong>Display name:</strong> {storedContext.displayName}</span>
