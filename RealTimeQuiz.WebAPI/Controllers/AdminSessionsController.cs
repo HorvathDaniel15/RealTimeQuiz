@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RealTimeQuiz.Logic.Contracts.Sessions.Responses;
 using RealTimeQuiz.Logic.Services.Interfaces;
+using RealTimeQuiz.Model.Enums;
 using RealTimeQuiz.WebAPI.Contracts.Requests.Admin;
 using RealTimeQuiz.WebAPI.Mappers;
+using RealTimeQuiz.WebAPI.SignalR.Services;
 
 namespace RealTimeQuiz.WebAPI.Controllers;
 
@@ -13,10 +15,12 @@ namespace RealTimeQuiz.WebAPI.Controllers;
 public class AdminSessionsController : ControllerBase
 {
     private readonly ISessionService _sessionService;
+    private readonly ISessionNotificationService _notificationService;
 
-    public AdminSessionsController(ISessionService sessionService)
+    public AdminSessionsController(ISessionService sessionService, ISessionNotificationService notificationService)
     {
         _sessionService = sessionService;
+        _notificationService = notificationService;
     }
 
     [HttpPost]
@@ -106,6 +110,9 @@ public class AdminSessionsController : ControllerBase
             return Unauthorized();
         }
         var result = await _sessionService.StartSessionAsync(sessionId, ownerId, cancellationToken);
+        
+        await _notificationService.NotifyQuestionStartedAsync(sessionId, result);
+        
         return Ok(result);
     }
 
@@ -128,6 +135,9 @@ public class AdminSessionsController : ControllerBase
             return Unauthorized();
         }
         var result = await _sessionService.CloseCurrentQuestionAsync(sessionId, ownerId, cancellationToken);
+        
+        await _notificationService.NotifyQuestionClosedAsync(sessionId);
+        
         return Ok(result);
     }
 
@@ -150,6 +160,16 @@ public class AdminSessionsController : ControllerBase
             return Unauthorized();
         }
         var result = await _sessionService.AdvanceToNextQuestionAsync(sessionId, ownerId, cancellationToken);
+
+        if (result.State == SessionState.Finished)
+        {
+            await _notificationService.NotifySessionFinishedAsync(sessionId);
+        }
+        else
+        {
+            await _notificationService.NotifyQuestionStartedAsync(sessionId, result);
+        }
+        
         return Ok(result);
     }
 
@@ -172,6 +192,9 @@ public class AdminSessionsController : ControllerBase
             return Unauthorized();
         }
         var result = await _sessionService.FinishSessionAsync(sessionId, ownerId, cancellationToken);
+        
+        await _notificationService.NotifySessionFinishedAsync(sessionId);
+        
         return Ok(result);
     }
 }

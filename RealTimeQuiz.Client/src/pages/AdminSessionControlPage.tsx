@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { adminApi, type SessionDto } from "../api/adminApi";
 import { toErrorMessage } from "../types/problemDetails";
+import { useSignalRHub } from "../hooks/useSignalRHub";
 import "./admin.css";
 
 function stateLabel(state: number): string {
@@ -23,6 +24,25 @@ export default function AdminSessionControlPage() {
     const [loading, setLoading] = useState(true);
     const [busyAction, setBusyAction] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    const { isConnected } = useSignalRHub({
+        sessionId: numericSessionId,
+        onParticipantJoined: (data) => {
+            console.log("Participant joined:", data);
+        },
+        onAnswerSubmitted: (data) => {
+            console.log("Answer submitted:", data);
+        },
+        onQuestionStarted: () => {
+            loadSession();
+        },
+        onQuestionClosed: () => {
+            loadSession();
+        },
+        onSessionFinished: () => {
+            loadSession();
+        }
+    });
 
     async function loadSession() {
         if (!numericSessionId) return;
@@ -65,10 +85,11 @@ export default function AdminSessionControlPage() {
         <div className="admin-page">
             <div className="admin-shell">
                 <section className="admin-card">
-                    <Link className="admin-link" to={`/admin/quizzes/${session.quizId}`}>← Vissza a kvízhez</Link>
+                    <Link className="admin-link" to={`/admin/quizzes/${session.quizId}`}>← Vissza a kvzhez</Link>
                     <h1 className="admin-title">Session #{session.id}</h1>
 
                     <div className="admin-kpi">
+                        <span><strong>SignalR:</strong> <span style={{ color: isConnected ? "green" : "red" }}>{isConnected ? "Connected" : "Disconnected"}</span></span>
                         <span><strong>PIN:</strong> {session.joinPin}</span>
                         <span><strong>Allapot:</strong> {stateLabel(session.state)}</span>
                         <span><strong>Aktualis kerdes:</strong> {session.currentQuestionText ?? "-"}</span>

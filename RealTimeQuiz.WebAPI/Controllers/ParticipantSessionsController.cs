@@ -4,6 +4,7 @@ using RealTimeQuiz.Logic.Contracts.Sessions.Responses;
 using RealTimeQuiz.Logic.Services.Interfaces;
 using RealTimeQuiz.WebAPI.Contracts.Requests.Participant;
 using RealTimeQuiz.WebAPI.Mappers;
+using RealTimeQuiz.WebAPI.SignalR.Services;
 
 namespace RealTimeQuiz.WebAPI.Controllers;
 
@@ -14,10 +15,12 @@ public class ParticipantSessionsController : ControllerBase
     private const string UserHeaderName = "X-User-Id";
 
     private readonly IParticipantSessionService _participantSessionService;
+    private readonly ISessionNotificationService _notificationService;
 
-    public ParticipantSessionsController(IParticipantSessionService participantSessionService)
+    public ParticipantSessionsController(IParticipantSessionService participantSessionService, ISessionNotificationService notificationService)
     {
         _participantSessionService = participantSessionService;
+        _notificationService = notificationService;
     }
 
     [HttpPost("join")]
@@ -33,6 +36,9 @@ public class ParticipantSessionsController : ControllerBase
     {
         var joinRequest = request.ToLogicRequest();
         var result = await _participantSessionService.JoinByPinAsync(joinRequest, userId, cancellationToken);
+        
+        await _notificationService.NotifyParticipantJoinedAsync(result.SessionId, result);
+        
         return Ok(result);
     }
 
@@ -67,6 +73,9 @@ public class ParticipantSessionsController : ControllerBase
     {
         var submitRequest = request.ToLogicRequest();
         var result = await _participantSessionService.SubmitAnswerAsync(submitRequest, cancellationToken);
+        
+        await _notificationService.NotifyAnswerSubmittedAsync(result.SessionId, result);
+        
         return Ok(result);
     }
 
