@@ -33,9 +33,9 @@ function ParticipantSessionPage() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [info, setInfo] = useState<string | null>(null);
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
     const submittedQuestionId = submitResult?.questionId ?? null;
-    const hasFinalResult = submitResult?.isCorrect !== null && submitResult?.isCorrect !== undefined;
 
     const { isConnected } = useSignalRHub({
         sessionId: storedContext?.sessionId,
@@ -111,6 +111,43 @@ function ParticipantSessionPage() {
         loadCurrentQuestion();
     }, [loadCurrentQuestion]);
 
+    useEffect(() => {
+        if (!currentQuestion || !currentQuestion.timeLimitSeconds) {
+            setTimeLeft(null);
+            return;
+        }
+
+        const limit = currentQuestion.timeLimitSeconds;
+        const openedTimeStr = currentQuestion.openedAtUtc.endsWith("Z") ? currentQuestion.openedAtUtc : currentQuestion.openedAtUtc + "Z";
+        const openedAt = new Date(openedTimeStr).getTime();
+        const expiresAt = openedAt + limit * 1000;
+
+        const updateTimer = () => {
+            const now = new Date().getTime();
+            const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
+            if (remaining === 0) {
+                setSubmitResult({
+                   sessionId: currentQuestion.sessionId,
+                    participantId: numericParticipantId,
+                    questionId: currentQuestion.questionId,
+                    optionId: 0,
+                    status: 1,
+                    isCorrect: false,
+                    awardedPoints: 0,
+                    submittedAtUtc: new Date().toISOString()
+                });
+                setInfo("Time's up! Waiting for the admin's next move...");
+                clearInterval(intervalId);
+            }
+            setTimeLeft(remaining);
+        };
+
+        updateTimer();
+        const intervalId = setInterval(updateTimer, 1000);
+
+        return () => clearInterval(intervalId);
+    }, [currentQuestion]);
+
     async function submitAnswer() {
         if (!currentQuestion || !selectedOptionId) {
             setError("Valassz egy opciot bekuldes elott.");
@@ -140,14 +177,6 @@ function ParticipantSessionPage() {
         }
     }
 
-    async function prepareNextQuestion() {
-        setCurrentQuestion(null);
-        setSelectedOptionId(null);
-        setSubmitResult(null);
-        setError(null);
-        setInfo("Uj kerdesre varakozas...");
-        await loadCurrentQuestion(true);
-    }
 
     if (!numericParticipantId) {
         return <div className="participant-page">Hibas participant azonosito az URL-ben.</div>;
@@ -179,8 +208,8 @@ function ParticipantSessionPage() {
                         <h2 className="participant-question-title">
                             {currentQuestion.orderIndex + 1}. {currentQuestion.text}
                         </h2>
-                        <p>
-                            <strong>Idokorlat:</strong> {currentQuestion.timeLimitSeconds ?? "-"} sec
+                        <p style={{ color: timeLeft !== null && timeLeft <= 5 ? "red" : "inherit", fontWeight: timeLeft !== null && timeLeft <= 5 ? "bold" : "normal" }}>
+                            <strong>Hátralévő idő:</strong> {timeLeft !== null ? `${timeLeft} másodperc` : (currentQuestion.timeLimitSeconds ? `${currentQuestion.timeLimitSeconds} sec` : "-")}
                         </p>
 
                         <div className="participant-options">
@@ -190,7 +219,7 @@ function ParticipantSessionPage() {
                                         type="radio"
                                         checked={selectedOptionId === option.id}
                                         onChange={() => setSelectedOptionId(option.id)}
-                                        disabled={busy}
+                                        disabled={busy || timeLeft === 0}
                                     />
                                     <span>{option.text}</span>
                                 </label>
@@ -198,8 +227,8 @@ function ParticipantSessionPage() {
                         </div>
 
                         <div className="participant-actions">
-                            <button className="participant-button" onClick={submitAnswer} disabled={busy}>
-                                {busy ? "Sending..." : "Submit answer"}
+                            <button className="participant-button" onClick={submitAnswer} disabled={busy || timeLeft === 0}>
+                                {timeLeft === 0 ? "Az idő lejárt!" : (busy ? "Sending..." : "Submit answer")}
                             </button>
                         </div>
                     </section>
@@ -219,22 +248,6 @@ function ParticipantSessionPage() {
                                       : "No"}
                             </p>
                             <p><strong>Awarded points:</strong> {submitResult.awardedPoints}</p>
-                        </div>
-
-                        <div className="participant-actions">
-                            <button
-                                className="participant-button participant-button-secondary"
-                                onClick={() => loadResult(submitResult.questionId)}
-                                disabled={busy}
-                            >
-                                Refresh result
-                            </button>
-
-                            {hasFinalResult && (
-                                <button className="participant-button" onClick={prepareNextQuestion} disabled={busy}>
-                                    Wait for next question
-                                </button>
-                            )}
                         </div>
                     </section>
                 )}
