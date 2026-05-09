@@ -58,6 +58,7 @@ export type SessionDto = {
     finishedAtUtc: string | null;
     currentQuestionOrderIndex: number | null;
     currentQuestionText: string | null;
+    currentQuestionTimeLimitSeconds: number | null;
 };
 
 export const adminApi = {

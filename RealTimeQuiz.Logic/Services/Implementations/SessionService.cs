@@ -391,6 +391,7 @@ public class SessionService : ISessionService
             FinishedAtUtc = quizSession.FinishedAtUtc,
             CurrentQuestionOrderIndex = currentQuestion?.OrderIndex,
             CurrentQuestionText = currentQuestion?.Text,
+            CurrentQuestionTimeLimitSeconds = currentQuestion?.TimeLimitSeconds,
         };
     }
 
@@ -415,6 +416,7 @@ public class SessionService : ISessionService
             FinishedAtUtc = quizSession.FinishedAtUtc,
             CurrentQuestionId = quizSession.CurrentQuestionId,
             ParticipantCount = quizSession.Participants.Count,
+            CurrentQuestionTimeLimitSeconds = currentQuestion?.TimeLimitSeconds,
             CurrentQuestion = currentQuestion is null
                 ? null
                 : new SessionCurrentQuestionDto

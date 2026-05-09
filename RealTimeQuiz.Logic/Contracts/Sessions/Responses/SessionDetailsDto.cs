@@ -16,5 +16,6 @@ public class SessionDetailsDto
     public DateTime? FinishedAtUtc { get; set; }
     public int? CurrentQuestionId { get; set; }
     public int ParticipantCount { get; set; }
+    public int? CurrentQuestionTimeLimitSeconds { get; set; }
     public SessionCurrentQuestionDto? CurrentQuestion { get; set; }
 }

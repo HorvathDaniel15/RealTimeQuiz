@@ -15,4 +15,5 @@ public class SessionLifecycleResultDto
     public DateTime? FinishedAtUtc { get; set; }
     public int? CurrentQuestionOrderIndex { get; set; }
     public string? CurrentQuestionText { get; set; }
+    public int? CurrentQuestionTimeLimitSeconds { get; set; }
 }

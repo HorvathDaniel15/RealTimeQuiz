@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { adminApi, type SessionDto } from "../api/adminApi";
 import { toErrorMessage } from "../types/problemDetails";
@@ -24,6 +24,8 @@ export default function AdminSessionControlPage() {
     const [loading, setLoading] = useState(true);
     const [busyAction, setBusyAction] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+    const autoCloseTriggered = useRef(false);
 
     const { isConnected } = useSignalRHub({
         sessionId: numericSessionId,
@@ -61,8 +63,41 @@ export default function AdminSessionControlPage() {
 
     useEffect(() => {
         loadSession();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [numericSessionId]);
+
+    useEffect(() => {
+        if (!session || session.state !== 2 || !session.currentQuestionTimeLimitSeconds || !session.questionOpenedAtUtc) {
+            setTimeLeft(null);
+            autoCloseTriggered.current = false;
+            return;
+        }
+
+        const limit = session.currentQuestionTimeLimitSeconds;
+        const openedTimeStr = session.questionOpenedAtUtc.endsWith("Z")
+            ? session.questionOpenedAtUtc
+            : session.questionOpenedAtUtc + "Z";
+        const openedAt = new Date(openedTimeStr).getTime();
+        const expiresAt = openedAt + limit * 1000;
+
+        const updateTimer = () => {
+            const now = new Date().getTime();
+            const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
+            setTimeLeft(remaining);
+
+            // Ha lejárt az idő ÉS még nem zártuk le automatikusan
+            if (remaining === 0 && !autoCloseTriggered.current) {
+                autoCloseTriggered.current = true; // Jelezzük, hogy elsütöttük
+
+                // Meghívjuk pontosan azt a funkciót, amit a gomb is csinálna:
+                runAction("closeCurrentQuestion", () => adminApi.closeCurrentQuestion(session.id));
+            }
+        };
+
+        updateTimer();
+        const intervalId = setInterval(updateTimer, 1000);
+
+        return () => clearInterval(intervalId);
+    }, [session]); // A UseEffect újratölt, ha a session változik
 
     async function runAction(name: string, action: () => Promise<SessionDto>) {
         setBusyAction(name);
@@ -94,6 +129,14 @@ export default function AdminSessionControlPage() {
                         <span><strong>Allapot:</strong> {stateLabel(session.state)}</span>
                         <span><strong>Aktualis kerdes:</strong> {session.currentQuestionText ?? "-"}</span>
                         <span><strong>Kerdes index:</strong> {session.currentQuestionOrderIndex ?? "-"}</span>
+                        {timeLeft !== null &&(
+                            <span>
+                                <strong>Hátralévő idő:</strong>
+                                <span style={{color: timeLeft <= 5 ? "red" : "inherit"}}>
+                                    {timeLeft} másodperc
+                                </span>
+                            </span>
+                        )}
                     </div>
                 </section>
 

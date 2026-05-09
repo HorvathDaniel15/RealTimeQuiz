@@ -46,6 +46,18 @@ function ParticipantSessionPage() {
             if (submittedQuestionId) {
                 loadResult(submittedQuestionId, true);
             }
+            else if (currentQuestion) {
+                setSubmitResult({
+                    sessionId: currentQuestion.sessionId,
+                    participantId: numericParticipantId,
+                    questionId: currentQuestion.questionId,
+                    optionId: 0,
+                    status: 1,
+                    isCorrect: false,
+                    awardedPoints: 0,
+                    submittedAtUtc: new Date().toISOString()
+                })
+            }
         },
         onSessionFinished: () => {
             setInfo("A játék véget ért.");
