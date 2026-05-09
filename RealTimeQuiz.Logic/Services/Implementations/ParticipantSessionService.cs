@@ -86,6 +86,16 @@ public class ParticipantSessionService : IParticipantSessionService
 
         EnsureQuestionOpenState(session);
         var currentQuestion = EnsureCurrentQuestionConsistency(session, request.QuestionId);
+
+        if (session.QuestionOpenedAtUtc.HasValue && currentQuestion.TimeLimitSeconds > 0)
+        {
+            var timeLimit = session.QuestionOpenedAtUtc.Value.AddSeconds(currentQuestion.TimeLimitSeconds);
+            if (DateTime.UtcNow > timeLimit)
+            {
+                throw new BusinessValidationException("The time limit for this question has expired.");
+            }
+        }
+
         var selectedOption = FindOptionInCurrentQuestion(currentQuestion, request.OptionId);
 
         var existingAnswer = await _sessionAnswerRepository
