@@ -1,3 +1,4 @@
+using RealTimeQuiz.Data.Models;
 using RealTimeQuiz.Model.Entities;
 
 namespace RealTimeQuiz.Data.Interfaces;
@@ -11,4 +12,5 @@ public interface IQuizRepository
     Task UpdateAsync(Quiz quiz, CancellationToken cancellationToken = default);
     Task DeleteAsync(Quiz quiz, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(int quizId, CancellationToken cancellationToken = default);
+    Task<List<ParticipantScoreModel>> GetLeaderboardAsync(int quizId, CancellationToken cancellationToken = default);
 }
