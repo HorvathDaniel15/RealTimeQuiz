@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RealTimeQuiz.Data.Interfaces;
+using RealTimeQuiz.Data.Models;
 using RealTimeQuiz.Model.Entities;
 
 namespace RealTimeQuiz.Data.Repositories;
@@ -57,5 +58,21 @@ public class QuizRepository : IQuizRepository
     {
         return await _context.Quizzes
             .AnyAsync(q => q.Id == quizId, cancellationToken);
+    }
+
+    public async Task<List<ParticipantScoreModel>> GetLeaderboardAsync(int quizId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Quizzes
+            .Where(q => q.Id == quizId)
+            .SelectMany(q => q.Sessions)
+            .SelectMany(s => s.Participants)
+            .Select(p => new ParticipantScoreModel
+            {
+                ParticipantName = p.DisplayName,
+                CorrectAnswersCount = p.Answers.Count(a => a.IsCorrect)
+            })
+            .OrderByDescending(x => x.CorrectAnswersCount)
+            .ThenBy(x => x.ParticipantName)
+            .ToListAsync(cancellationToken);
     }
 }
