@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { participantApi } from "../api/participantApi";
 import ProblemAlert from "../components/ProblemAlert";
+import Leaderboard from "../components/Leaderboard";
 import { toErrorMessage, type ProblemDetails } from "../types/problemDetails";
 import {
     clearParticipantContext,
@@ -9,6 +10,7 @@ import {
     submissionStatusLabel,
     type ParticipantCurrentQuestion,
     type SubmitAnswerResult,
+    type LeaderboardEntry,
 } from "../types/participant";
 import { useSignalRHub } from "../hooks/useSignalRHub";
 import "./participant.css";
@@ -34,11 +36,15 @@ function ParticipantSessionPage() {
     const [error, setError] = useState<string | null>(null);
     const [info, setInfo] = useState<string | null>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
+    const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
 
     const submittedQuestionId = submitResult?.questionId ?? null;
 
     const { isConnected } = useSignalRHub({
         sessionId: storedContext?.sessionId,
+        onLeaderboardUpdated: (data) => {
+            setLeaderboard(data);
+        },
         onQuestionStarted: () => {
             loadCurrentQuestion(true);
         },
@@ -274,6 +280,13 @@ function ParticipantSessionPage() {
 
                 {info && <section className="participant-card">{info}</section>}
                 <ProblemAlert message={error} />
+
+                {leaderboard && (
+                    <Leaderboard 
+                        entries={leaderboard} 
+                        currentParticipantName={storedContext?.displayName} 
+                    />
+                )}
 
                 <section className="participant-actions">
                     <button

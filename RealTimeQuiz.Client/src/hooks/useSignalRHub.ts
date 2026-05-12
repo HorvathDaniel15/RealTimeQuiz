@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import { API_BASE_URL } from "../api/httpClient";
 import { getAccessToken } from "../state/authStorage";
@@ -7,44 +7,26 @@ import type {
   SessionLifecycleResultDto,
   SubmitAnswerResultDto,
 } from "../types/signalr.types";
+import { type LeaderboardEntry } from "../types/participant";
 
-interface UseSignalRHubProps {
+export type UseSignalRHubOptions = {
   sessionId?: number;
   onParticipantJoined?: (data: JoinSessionResultDto) => void;
   onQuestionStarted?: (data: SessionLifecycleResultDto) => void;
   onQuestionClosed?: () => void;
-  onSessionFinished?: () => void;
   onAnswerSubmitted?: (data: SubmitAnswerResultDto) => void;
-}
+  onSessionFinished?: () => void;
+  onLeaderboardUpdated?: (leaderboard: LeaderboardEntry[]) => void;
+};
 
-export function useSignalRHub({
-  sessionId,
-  onParticipantJoined,
-  onQuestionStarted,
-  onQuestionClosed,
-  onSessionFinished,
-  onAnswerSubmitted,
-}: UseSignalRHubProps) {
+export function useSignalRHub(options: UseSignalRHubOptions) {
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  
-  
-  const callbacksRef = useRef({
-    onParticipantJoined,
-    onQuestionStarted,
-    onQuestionClosed,
-    onSessionFinished,
-    onAnswerSubmitted,
-  });
+
+  const optionsRef = useRef(options);
 
   useEffect(() => {
-    callbacksRef.current = {
-      onParticipantJoined,
-      onQuestionStarted,
-      onQuestionClosed,
-      onSessionFinished,
-      onAnswerSubmitted,
-    };
+    optionsRef.current = options;
   });
 
   useEffect(() => {
@@ -61,49 +43,53 @@ export function useSignalRHub({
     setConnection(newConnection);
 
     newConnection.on("ParticipantJoined", (data: JoinSessionResultDto) => {
-      callbacksRef.current.onParticipantJoined?.(data);
+      optionsRef.current.onParticipantJoined?.(data);
     });
 
     newConnection.on("QuestionStarted", (data: SessionLifecycleResultDto) => {
-      callbacksRef.current.onQuestionStarted?.(data);
+      optionsRef.current.onQuestionStarted?.(data);
     });
 
     newConnection.on("QuestionClosed", () => {
-      callbacksRef.current.onQuestionClosed?.();
+      optionsRef.current.onQuestionClosed?.();
     });
 
     newConnection.on("SessionFinished", () => {
-      callbacksRef.current.onSessionFinished?.();
+      optionsRef.current.onSessionFinished?.();
     });
 
     newConnection.on("AnswerSubmitted", (data: SubmitAnswerResultDto) => {
-      callbacksRef.current.onAnswerSubmitted?.(data);
+      optionsRef.current.onAnswerSubmitted?.(data);
     });
 
-    async function startConnection() {
+    newConnection.on("LeaderboardUpdated", (leaderboard: LeaderboardEntry[]) => {
+      optionsRef.current.onLeaderboardUpdated?.(leaderboard);
+    });
+
+    const startConnection = async () => {
       try {
         await newConnection.start();
         if (!isMounted) return;
         setIsConnected(true);
 
-        if (sessionId) {
-          await newConnection.invoke("JoinSessionGroup", sessionId);
+        if (options.sessionId) {
+          await newConnection.invoke("JoinSessionGroup", options.sessionId);
         }
       } catch (e) {
         console.error("SignalR Connection Error: ", e);
       }
-    }
+    };
 
     startConnection();
 
     return () => {
       isMounted = false;
-      if (sessionId && newConnection.state === signalR.HubConnectionState.Connected) {
-        newConnection.invoke("LeaveSessionGroup", sessionId).catch(console.error);
+      if (options.sessionId && newConnection.state === signalR.HubConnectionState.Connected) {
+        newConnection.invoke("LeaveSessionGroup", options.sessionId).catch(console.error);
       }
       newConnection.stop();
     };
-  }, [sessionId]);
+  }, [options.sessionId]);
 
   return { connection, isConnected };
 }
