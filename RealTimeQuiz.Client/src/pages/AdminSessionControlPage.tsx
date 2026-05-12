@@ -66,13 +66,14 @@ export default function AdminSessionControlPage() {
     }, [numericSessionId]);
 
     useEffect(() => {
-        if (!session || session.state !== 2 || !session.currentQuestionTimeLimitSeconds || !session.questionOpenedAtUtc) {
+        const timeLimit = session?.currentQuestionTimeLimitSeconds ?? session?.currentQuestion?.timeLimitSeconds;
+        if (!session || session.state !== 2 || !timeLimit || !session.questionOpenedAtUtc) {
             setTimeLeft(null);
             autoCloseTriggered.current = false;
             return;
         }
 
-        const limit = session.currentQuestionTimeLimitSeconds;
+        const limit = timeLimit;
         const openedTimeStr = session.questionOpenedAtUtc.endsWith("Z")
             ? session.questionOpenedAtUtc
             : session.questionOpenedAtUtc + "Z";
@@ -127,8 +128,8 @@ export default function AdminSessionControlPage() {
                         <span><strong>SignalR:</strong> <span style={{ color: isConnected ? "green" : "red" }}>{isConnected ? "Connected" : "Disconnected"}</span></span>
                         <span><strong>PIN:</strong> {session.joinPin}</span>
                         <span><strong>Allapot:</strong> {stateLabel(session.state)}</span>
-                        <span><strong>Aktualis kerdes:</strong> {session.currentQuestionText ?? "-"}</span>
-                        <span><strong>Kerdes index:</strong> {session.currentQuestionOrderIndex ?? "-"}</span>
+                        <span><strong>Aktualis kerdes:</strong> {session.currentQuestionText ?? session.currentQuestion?.text ?? "-"}</span>
+                        <span><strong>Kerdes index:</strong> {(session.currentQuestionOrderIndex ?? session.currentQuestion?.orderIndex)?.toString() ?? "-"}</span>
                         {timeLeft !== null &&(
                             <span>
                                 <strong>Hátralévő idő:</strong>

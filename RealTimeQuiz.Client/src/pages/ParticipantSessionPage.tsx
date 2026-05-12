@@ -138,17 +138,23 @@ function ParticipantSessionPage() {
             const now = new Date().getTime();
             const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
             if (remaining === 0) {
-                setSubmitResult({
-                   sessionId: currentQuestion.sessionId,
-                    participantId: numericParticipantId,
-                    questionId: currentQuestion.questionId,
-                    optionId: 0,
-                    status: 1,
-                    isCorrect: false,
-                    awardedPoints: 0,
-                    submittedAtUtc: new Date().toISOString()
+                setSubmitResult(prevResult => {
+                    if (prevResult) {
+                        return prevResult;
+                    }
+                    
+                    setInfo("Time's up! Waiting for the admin's next move...");
+                    return {
+                        sessionId: currentQuestion.sessionId,
+                        participantId: numericParticipantId,
+                        questionId: currentQuestion.questionId,
+                        optionId: 0,
+                        status: 1,
+                        isCorrect: false,
+                        awardedPoints: 0,
+                        submittedAtUtc: new Date().toISOString()
+                    };
                 });
-                setInfo("Time's up! Waiting for the admin's next move...");
                 clearInterval(intervalId);
             }
             setTimeLeft(remaining);
