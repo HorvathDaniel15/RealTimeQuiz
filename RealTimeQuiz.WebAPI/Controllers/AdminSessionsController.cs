@@ -137,6 +137,7 @@ public class AdminSessionsController : ControllerBase
         var result = await _sessionService.CloseCurrentQuestionAsync(sessionId, ownerId, cancellationToken);
         
         await _notificationService.NotifyQuestionClosedAsync(sessionId);
+        await _notificationService.NotifyLeaderboardUpdatedAsync(sessionId);
         
         return Ok(result);
     }
@@ -194,8 +195,8 @@ public class AdminSessionsController : ControllerBase
         var result = await _sessionService.FinishSessionAsync(sessionId, ownerId, cancellationToken);
         
         await _notificationService.NotifySessionFinishedAsync(sessionId);
+        await _notificationService.NotifyLeaderboardUpdatedAsync(sessionId);
         
         return Ok(result);
     }
 }
-
