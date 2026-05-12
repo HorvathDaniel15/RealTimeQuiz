@@ -46,6 +46,12 @@ export type SubmitAnswerResult = {
     submittedAtUtc: string;
 };
 
+export type LeaderboardEntry = {
+    position: number;
+    participantName: string;
+    correctAnswersCount: number;
+};
+
 export type ParticipantSessionContext = {
     participantId: number;
     sessionId: number;
@@ -86,4 +92,3 @@ export function submissionStatusLabel(status: number): string {
             return `Unknown(${status})`;
     }
 }
-

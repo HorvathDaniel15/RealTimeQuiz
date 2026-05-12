@@ -5,26 +5,25 @@ using RealTimeQuiz.Logic.Services.Interfaces;
 namespace RealTimeQuiz.WebAPI.Controllers;
 
 [ApiController]
-[Route("api/quizzes")]
+[Route("api/sessions")]
 public class QuizzesController : ControllerBase
 {
-    private readonly IQuizService _quizService;
+    private readonly IParticipantSessionService _sessionService;
 
-    public QuizzesController(IQuizService quizService)
+    public QuizzesController(IParticipantSessionService sessionService)
     {
-        _quizService = quizService;
+        _sessionService = sessionService;
     }
 
-    [HttpGet("{quizId:int}/leaderboard")]
+    [HttpGet("{sessionId:int}/leaderboard")]
     [ProducesResponseType(typeof(IReadOnlyList<LeaderboardEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IReadOnlyList<LeaderboardEntryDto>>> GetLeaderboard(
-        int quizId,
+        int sessionId,
         CancellationToken cancellationToken)
     {
-        var result = await _quizService.GetLeaderboardAsync(quizId, cancellationToken);
+        var result = await _sessionService.GetLeaderboardForSessionAsync(sessionId, cancellationToken);
         return Ok(result);
     }
 }
-

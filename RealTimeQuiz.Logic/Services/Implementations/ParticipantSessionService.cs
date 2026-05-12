@@ -155,13 +155,33 @@ public class ParticipantSessionService : IParticipantSessionService
         int sessionId, 
         CancellationToken cancellationToken = default)
     {
-        var session = await _quizSessionRepository.GetByIdAsync(sessionId, cancellationToken);
-        if (session == null)
+        var sessionExists = await _quizSessionRepository.GetByIdAsync(sessionId, cancellationToken) != null;
+        if (!sessionExists)
         {
             throw new EntityNotFoundException($"Quiz session with ID {sessionId} not found.");
         }
 
-        return await _quizService.GetLeaderboardAsync(session.QuizId, cancellationToken);
+        var scores = await _quizSessionRepository.GetSessionLeaderboardAsync(sessionId, cancellationToken);
+        
+        var result = new List<LeaderboardEntryDto>(scores.Count);
+        int currentPosition = 1;
+        
+        for (int i = 0; i < scores.Count; i++)
+        {
+            if (i > 0 && scores[i].CorrectAnswersCount < scores[i - 1].CorrectAnswersCount)
+            {
+                currentPosition = i + 1;
+            }
+            
+            result.Add(new LeaderboardEntryDto
+            {
+                Position = currentPosition,
+                ParticipantName = scores[i].ParticipantName,
+                CorrectAnswersCount = scores[i].CorrectAnswersCount
+            });
+        }
+
+        return result;
     }
 
     private static void ValidateJoinRequest(JoinSessionByPinRequest request)

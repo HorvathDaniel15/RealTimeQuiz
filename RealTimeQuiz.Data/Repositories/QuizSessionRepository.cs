@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using RealTimeQuiz.Data.Interfaces;
+using RealTimeQuiz.Data.Models;
 using RealTimeQuiz.Model.Entities;
 
 namespace RealTimeQuiz.Data.Repositories;
@@ -65,6 +66,19 @@ public class QuizSessionRepository : IQuizSessionRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<List<ParticipantScoreModel>> GetSessionLeaderboardAsync(int sessionId, CancellationToken cancellationToken = default)
+    {
+        return await _context.SessionParticipants
+            .Where(p => p.QuizSessionId == sessionId)
+            .Select(p => new ParticipantScoreModel
+            {
+                ParticipantName = p.DisplayName,
+                CorrectAnswersCount = p.Answers.Count(a => a.IsCorrect)
+            })
+            .OrderByDescending(x => x.CorrectAnswersCount)
+            .ThenBy(x => x.ParticipantName)
+            .ToListAsync(cancellationToken);
+    }
 
     private static bool IsJoinPinUniqueConstraintViolation(DbUpdateException exception)
     {

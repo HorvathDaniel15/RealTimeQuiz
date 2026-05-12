@@ -99,37 +99,6 @@ public class QuizService : IQuizService
         
         return new CreateQuizResultDto { Id = quiz.Id };
     }
-
-    public async Task<IReadOnlyList<LeaderboardEntryDto>> GetLeaderboardAsync(int quizId, CancellationToken cancellationToken = default)
-    {
-        var exists = await _quizRepository.ExistsAsync(quizId, cancellationToken);
-        if (!exists)
-        {
-            throw new EntityNotFoundException($"Quiz with ID {quizId} not found");
-        }
-
-        var scores = await _quizRepository.GetLeaderboardAsync(quizId, cancellationToken);
-
-        var result = new List<LeaderboardEntryDto>(scores.Count);
-        int currentPosition = 1;
-        
-        for (int i = 0; i < scores.Count; i++)
-        {
-            if (i > 0 && scores[i].CorrectAnswersCount < scores[i - 1].CorrectAnswersCount)
-            {
-                currentPosition = i + 1;
-            }
-            
-            result.Add(new LeaderboardEntryDto
-            {
-                Position = currentPosition,
-                ParticipantName = scores[i].ParticipantName,
-                CorrectAnswersCount = scores[i].CorrectAnswersCount
-            });
-        }
-
-        return result;
-    }
     
     private static void ValidateOwnerId(string ownerId)
     {
