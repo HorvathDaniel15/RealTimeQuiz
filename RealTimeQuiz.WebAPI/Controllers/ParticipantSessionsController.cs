@@ -38,6 +38,7 @@ public class ParticipantSessionsController : ControllerBase
         var result = await _participantSessionService.JoinByPinAsync(joinRequest, userId, cancellationToken);
         
         await _notificationService.NotifyParticipantJoinedAsync(result.SessionId, result);
+        await _notificationService.NotifyLeaderboardUpdatedAsync(result.SessionId);
         
         return Ok(result);
     }
@@ -100,4 +101,3 @@ public class ParticipantSessionsController : ControllerBase
         return Ok(result);
     }
 }
-
