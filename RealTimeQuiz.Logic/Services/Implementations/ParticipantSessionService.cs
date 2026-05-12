@@ -1,6 +1,7 @@
 using RealTimeQuiz.Data.Interfaces;
 using RealTimeQuiz.Logic.Contracts.Sessions.Requests;
 using RealTimeQuiz.Logic.Contracts.Sessions.Responses;
+using RealTimeQuiz.Logic.Contracts.Quizzes.Responses;
 using RealTimeQuiz.Logic.Exceptions;
 using RealTimeQuiz.Logic.Services.Interfaces;
 using RealTimeQuiz.Model.Entities;
@@ -16,15 +17,18 @@ public class ParticipantSessionService : IParticipantSessionService
     private readonly IQuizSessionRepository _quizSessionRepository;
     private readonly IParticipantRepository _participantRepository;
     private readonly ISessionAnswerRepository _sessionAnswerRepository;
+    private readonly IQuizService _quizService;
 
     public ParticipantSessionService(
         IQuizSessionRepository quizSessionRepository,
         IParticipantRepository participantRepository,
-        ISessionAnswerRepository sessionAnswerRepository)
+        ISessionAnswerRepository sessionAnswerRepository,
+        IQuizService quizService)
     {
         _quizSessionRepository = quizSessionRepository;
         _participantRepository = participantRepository;
         _sessionAnswerRepository = sessionAnswerRepository;
+        _quizService = quizService;
     }
 
     public async Task<JoinSessionResultDto> JoinByPinAsync(JoinSessionByPinRequest request, string? userId,
@@ -145,6 +149,19 @@ public class ParticipantSessionService : IParticipantSessionService
         }
 
         return MapToSubmitAnswerResultDto(answer);
+    }
+
+    public async Task<IReadOnlyList<LeaderboardEntryDto>> GetLeaderboardForSessionAsync(
+        int sessionId, 
+        CancellationToken cancellationToken = default)
+    {
+        var session = await _quizSessionRepository.GetByIdAsync(sessionId, cancellationToken);
+        if (session == null)
+        {
+            throw new EntityNotFoundException($"Quiz session with ID {sessionId} not found.");
+        }
+
+        return await _quizService.GetLeaderboardAsync(session.QuizId, cancellationToken);
     }
 
     private static void ValidateJoinRequest(JoinSessionByPinRequest request)

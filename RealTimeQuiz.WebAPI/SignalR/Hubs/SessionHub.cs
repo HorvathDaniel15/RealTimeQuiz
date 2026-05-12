@@ -16,6 +16,7 @@ public class SessionHub : Hub<ISessionClient>
     public async Task JoinSessionGroup(int sessionId)
     {
         await _notificationService.AddToGroupAsync(Context.ConnectionId, $"Session_{sessionId}");
+        await _notificationService.SendInitialLeaderboardAsync(Context.ConnectionId, sessionId);
     }
 
     public async Task LeaveSessionGroup(int sessionId)

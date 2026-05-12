@@ -12,4 +12,8 @@ public interface ISessionNotificationService
     Task NotifySessionFinishedAsync(int sessionId);
     Task NotifyParticipantJoinedAsync(int sessionId, JoinSessionResultDto participantData);
     Task NotifyAnswerSubmittedAsync(int sessionId, SubmitAnswerResultDto answerData);
+
+    Task NotifyLeaderboardUpdatedAsync(int sessionId);
+    
+    Task SendInitialLeaderboardAsync(string connectionId, int sessionId);
 }
