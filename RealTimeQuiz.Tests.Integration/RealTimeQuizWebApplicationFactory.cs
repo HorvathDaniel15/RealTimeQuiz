@@ -9,6 +9,8 @@ namespace RealTimeQuiz.Tests.Integration;
 
 public class RealTimeQuizWebApplicationFactory : WebApplicationFactory<Program>
 {
+    private readonly string _dbName = $"IntegrationTestDb_{Guid.NewGuid()}";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>
@@ -19,9 +21,8 @@ public class RealTimeQuizWebApplicationFactory : WebApplicationFactory<Program>
             // Helyette In-Memory adatbázist használunk a tesztekhez
             services.AddDbContext<AppDbContext>(options =>
             {
-                options.UseInMemoryDatabase("IntegrationTestDb");
+                options.UseInMemoryDatabase(_dbName);
             });
         });
     }
 }
-

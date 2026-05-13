@@ -97,7 +97,13 @@ public class QuizService : IQuizService
         
         await _quizRepository.AddAsync(quiz, cancellationToken);
         
-        return new CreateQuizResultDto { Id = quiz.Id };
+        return new CreateQuizResultDto 
+        { 
+            Id = quiz.Id,
+            Title = quiz.Title,
+            IsPublished = quiz.IsPublished,
+            CreatedUtc = quiz.CreatedUtc
+        };
     }
     
     private static void ValidateOwnerId(string ownerId)
