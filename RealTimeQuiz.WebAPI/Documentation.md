@@ -120,4 +120,3 @@ Az alábbi táblázat a legfontosabb tesztelt végpontokat és folyamatokat fogl
 | **TEST-SESS-02** | Csatlakozás létező játékmenethez | `Lobby` állapotban lévő session érvényes PIN kódja és a játékos beceneve. | HTTP 200 OK. A játékos csatlakozik a memóriában, és visszakapja a generált Participant azonosítóját. |
 | **TEST-SESS-03** | Csatlakozás érvénytelen kóddal | Egy olyan PIN kód, ami nem létezik a rendszerben. | HTTP 404 Not Found vagy 400 Bad Request hibakód (EntityNotFound exception). |
 
-Vége a dokumentációnak.
