@@ -26,4 +26,8 @@
       <ProjectReference Include="..\RealTimeQuiz.Logic\RealTimeQuiz.Logic.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Images\" />
+    </ItemGroup>
+
 </Project>
