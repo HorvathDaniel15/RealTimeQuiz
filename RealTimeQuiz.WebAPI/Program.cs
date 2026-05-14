@@ -135,7 +135,15 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await dbContext.Database.MigrateAsync();
+    
+    if (dbContext.Database.IsRelational())
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+    else
+    {
+        await dbContext.Database.EnsureCreatedAsync();
+    }
 
     const string demoOwnerId = "demo-admin-1";
     var hasDemoOwner = await dbContext.Users.AnyAsync(x => x.Id == demoOwnerId);
@@ -176,3 +184,5 @@ app.MapControllers();
 app.MapHub<SessionHub>("/session-hub");
 
 await app.RunAsync();
+
+public partial class Program { }
