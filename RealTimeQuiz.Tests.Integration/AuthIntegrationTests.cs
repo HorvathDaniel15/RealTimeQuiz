@@ -37,7 +37,7 @@ public class AuthIntegrationTests : BaseIntegrationTest
     [Fact]
     public async Task Login_WithValidData_ShouldReturnJwtToken()
     {
-        // Arrange - Elsőként regisztrálunk egy felhasználót
+        // Arrange
         var registerRequest = new RegisterRequest
         {
             Email = "testuser_login@local.test",
