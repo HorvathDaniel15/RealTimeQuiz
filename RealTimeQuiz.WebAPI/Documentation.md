@@ -113,10 +113,20 @@ Az alábbi táblázat a legfontosabb tesztelt végpontokat és folyamatokat fogl
 | ID | Tesztelt funkció / Forgatókönyv | Bemeneti adat / Előfeltétel | Elvárt rendszer-viselkedés |
 | :--- | :--- | :--- | :--- |
 | **TEST-AUTH-01** | Új adminisztrátor regisztrációja | Érvényes e-mail cím és jelszó (JSON formátumban). | HTTP 200 OK. A szerver létrehozza a fiókot és visszaadja a generált ID-t. |
-| **TEST-AUTH-02** | Szerkesztői bejelentkezés | Létező e-mail cím és a hozzá tartozó helyes jelszó. | HTTP 200 OK. A válasz tartalmaz egy érvényes Authorization JWT tokent és a Refresh tokent. |
-| **TEST-AUTH-03** | Bejelentkezés hibás adatokkal | Létező e-mail cím, de szándékosan rontott jelszó. | HTTP 403 Forbidden státuszkód (BusinessValidation/Forbidden kivétel). A token nem generálódik. |
-| **TEST-QUIZ-01** | Új kvíz létrehozása hitelesítve | A HTTP fejlécben lévő JWT token és a kvíz megnevezése. | HTTP 200 OK. Létrejön a kvíz entitás az adatbázisban a megfelelő felhasználóhoz kötve. |
-| **TEST-SESS-01** | Játékmenet (Session) indítása | Egy már létező kvíz azonosítója (ID). | Létrejön egy új Session `Draft` (piszkozat) állapotban, és generálódik hozzá egy 6 számjegyű, egyedi PIN kód. |
-| **TEST-SESS-02** | Csatlakozás létező játékmenethez | `Lobby` állapotban lévő session érvényes PIN kódja és a játékos beceneve. | HTTP 200 OK. A játékos csatlakozik a memóriában, és visszakapja a generált Participant azonosítóját. |
+| **TEST-AUTH-02** | Regisztráció már létező e-maillel | Olyan e-mail cím, ami már regisztrálva van az adatbázisban. | HTTP 400 Bad Request. A rendszer megakadályozza a duplikációt. |
+| **TEST-AUTH-03** | Regisztráció gyenge jelszóval | Túl rövid vagy szabálytalan formátumú jelszó megadása. | HTTP 400 Bad Request. Jelszó validációs hiba. |
+| **TEST-AUTH-04** | Szerkesztői bejelentkezés | Létező e-mail cím és a hozzá tartozó helyes jelszó. | HTTP 200 OK. A válasz tartalmaz egy érvényes Authorization JWT tokent és a Refresh tokent. |
+| **TEST-AUTH-05** | Bejelentkezés hibás jelszóval | Létező e-mail cím, de szándékosan rontott jelszó. | HTTP 400 Bad Request. A token nem generálódik. |
+| **TEST-AUTH-06** | Bejelentkezés nem létező fiókkal | Nem létező e-mail címmel történő autentikációs próba. | HTTP 403 Forbidden. Ismeretlen fiók miatti elutasítás. |
+| **TEST-QUIZ-01** | Új kvíz létrehozása hitelesítve | A HTTP fejlécben lévő JWT token és érvényes kvíz + kérdések (CreateQuizApiRequest). | HTTP 201 Created. Létrejön a kvíz entitás az adatbázisban a megfelelő felhasználóhoz kötve. |
+| **TEST-QUIZ-02** | Kvíz létrehozása hibás adatokkal | Üres cím, negatív időkorlát vagy helyes válasz nélküli kérdések. | HTTP 400 Bad Request. A validáció megfogja a hibát, a kvíz nem jön létre. |
+| **TEST-QUIZ-03** | Saját kvízek lekérdezése | Hitelesített adminisztrátor a saját fiókjában lévő token-nel. | HTTP 200 OK. A válaszban csakis az átadott felhasználóhoz tartozó kvízek listája jelenik meg. |
+| **TEST-QUIZ-04** | Nem létező kvíz lekérdezése | Érvénytelen (pl. 9999) kvíz azonosító megadása. | HTTP 404 Not Found. Az entitás nem található. |
+| **TEST-QUIZ-05** | Más felhasználó kvízének lekérése | Felhasználó próbál megnyitni egy olyan kvíz ID-t, amelynek nem ő a tulajdonosa. | HTTP 403 Forbidden. Biztonsági okokból a szerver elutasítja a hozzáférést. |
+| **TEST-SESS-01** | Játékmenet (Session) indítása | Egy létező, adminhoz tartozó kvíz azonosítója (ID). | HTTP 201 Created. Létrejön a Session `Draft` (piszkozat) állapotban, és generálódik egy 6 karakteres egyedi PIN kód. |
+| **TEST-SESS-02** | Csatlakozás létező játékmenethez | `OpenLobby` (nyitott) állapotban lévő session érvényes PIN kódja és beállított becenév. | HTTP 200 OK. A játékos sikeresen csatlakozik és visszakapja a generált azonosítóját. |
 | **TEST-SESS-03** | Csatlakozás érvénytelen kóddal | Egy olyan PIN kód, ami nem létezik a rendszerben. | HTTP 404 Not Found vagy 400 Bad Request hibakód (EntityNotFound exception). |
-
+| **TEST-SESS-04** | Csatlakozás piszkozat (Draft) sessionhöz | A Session még `Draft` fázisban van, nincs megnyitva a Lobby. | HTTP 403 Forbidden. A szerver megakadályozza az idő előtti csatlakozást. |
+| **TEST-SESS-05** | Csatlakozás már elindított sessionhöz | Egy már futó, vagy le is zárt játékhoz próbál meg becsatlakozni valaki. | HTTP 403 Forbidden. Elutasítás a rossz állapot miatt. |
+| **TEST-SESS-06** | Játék indítása rosszindulatú usertől | Egy nem tulajdonos résztvevő megpróbálja elindítani a Session-t a végpont hívásával. | HTTP 403 Forbidden. A rendszer biztosítja, hogy csak a kvízmester kezelhesse a saját játékmenetét. |
+| **TEST-SESS-07** | Válaszadás a lejárati időn túl | A kliens a kérdésre megengedett másodperceken túl küld választ. | HTTP 400 Bad Request. A rendszer időbélyeg alapján visszautasítja a beküldést lejárati idő miatt. |
