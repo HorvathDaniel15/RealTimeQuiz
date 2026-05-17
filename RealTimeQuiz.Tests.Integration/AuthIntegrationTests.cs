@@ -88,4 +88,61 @@ public class AuthIntegrationTests : BaseIntegrationTest
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Register_WithExistingEmail_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var request = new RegisterRequest
+        {
+            Email = "duplicate@local.test",
+            Password = "TestPassword123!",
+            UserName = "duplicate_user"
+        };
+
+        // Act 1: Első regisztráció (sikeresnek kell lennie)
+        var firstResponse = await Client.PostAsJsonAsync("/api/auth/register", request);
+        firstResponse.EnsureSuccessStatusCode();
+
+        // Act 2: Második regisztráció ugyanazzal az e-maillel
+        var secondResponse = await Client.PostAsJsonAsync("/api/auth/register", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, secondResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Register_WithWeakPassword_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var request = new RegisterRequest
+        {
+            Email = "weakpass@local.test",
+            Password = "123", // Túl rövid, nincs nagybetű, stb.
+            UserName = "weakpass_user"
+        };
+
+        // Act
+        var response = await Client.PostAsJsonAsync("/api/auth/register", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_WithNonExistingUser_ShouldReturnForbidden()
+    {
+        // Arrange
+        var loginRequest = new LoginRequest
+        {
+            Email = "doesnotexist@local.test",
+            Password = "TestPassword123!"
+        };
+
+        // Act
+        var response = await Client.PostAsJsonAsync("/api/auth/login", loginRequest);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }
