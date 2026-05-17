@@ -42,9 +42,9 @@ public class SessionIntegrationTests : BaseIntegrationTest
     [Fact]
     public async Task SubmitAnswer_AfterTimeLimit_ShouldReturnBadRequest()
     {
+        // Arrange
         var adminClient = await GetAuthenticatedClientAsync("submit_after_time");
         
-        // 1. Create a quiz with the minimum allowed time limit (5 seconds)
         var createQuizReq = new CreateQuizApiRequest
         {
             Title = "Gyors Kvíz",
@@ -53,7 +53,7 @@ public class SessionIntegrationTests : BaseIntegrationTest
                 new()
                 {
                     Text = "Gyors kérdés",
-                    TimeLimitSeconds = 5, // A minimum időkorlát 5 másodperc
+                    TimeLimitSeconds = 5,
                     Options = new List<CreateQuestionOptionApiRequest>
                     {
                         new() { Text = "A", IsCorrect = true },
@@ -66,29 +66,24 @@ public class SessionIntegrationTests : BaseIntegrationTest
         quizResp.EnsureSuccessStatusCode();
         var quiz = await quizResp.Content.ReadFromJsonAsync<CreateQuizResultDto>();
 
-        // 2. Create session & Open Lobby
         var createSessionResponse = await adminClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionApiRequest { QuizId = quiz!.Id });
         var session = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResultDto>();
         await adminClient.PostAsync($"/api/admin/sessions/{session!.Id}/open-lobby", null);
 
-        // 3. Join as Participant
         var participantClient = Factory.CreateClient();
         var joinRequest = new JoinSessionByPinApiRequest { JoinPin = session.JoinPin, DisplayName = "Slowpoke" };
         var joinResponse = await participantClient.PostAsJsonAsync("/api/participant-sessions/join", joinRequest);
         var joinResult = await joinResponse.Content.ReadFromJsonAsync<JoinSessionResultDto>();
 
-        // 4. Start Session (starts the 1-second timer)
         await adminClient.PostAsync($"/api/admin/sessions/{session.Id}/start", null);
 
-        // Fetch current question for the participant to get valid IDs
         var currentQuestionResponse = await participantClient.GetAsync($"/api/participant-sessions/{joinResult!.ParticipantId}/current-question");
         currentQuestionResponse.EnsureSuccessStatusCode();
         var currentQuestion = await currentQuestionResponse.Content.ReadFromJsonAsync<ParticipantCurrentQuestionDto>();
 
-        // 5. Wait for the time limit to expire (le kell várni az 5 másodpercet + pici rátartás)
         await Task.Delay(5200);
 
-        // 6. Try to submit an answer
+        // Act
         var submitRequest = new SubmitAnswerApiRequest
         {
             ParticipantId = joinResult.ParticipantId,
@@ -97,19 +92,22 @@ public class SessionIntegrationTests : BaseIntegrationTest
         };
         var submitResponse = await participantClient.PostAsJsonAsync("/api/participant-sessions/submit-answer", submitRequest);
 
-        // 7. Assert it is rejected
+        // Assert
         Assert.Equal(HttpStatusCode.BadRequest, submitResponse.StatusCode);
     }
 
     [Fact]
     public async Task CreateSession_ShouldReturnCreatedSessionWithPin()
     {
+        // Arrange
         var adminClient = await GetAuthenticatedClientAsync("createsession");
         var quiz = await CreateTestQuizAsync(adminClient);
 
+        // Act
         var request = new CreateSessionApiRequest { QuizId = quiz.Id };
         var response = await adminClient.PostAsJsonAsync("/api/admin/sessions", request);
 
+        // Assert
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<CreateSessionResultDto>();
 
@@ -123,14 +121,13 @@ public class SessionIntegrationTests : BaseIntegrationTest
     [Fact]
     public async Task JoinSession_WithValidPin_ShouldReturnSuccess()
     {
+        // Arrange
         var adminClient = await GetAuthenticatedClientAsync("joinsession");
         var quiz = await CreateTestQuizAsync(adminClient);
         
-        // 1. Create
         var createSessionResponse = await adminClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionApiRequest { QuizId = quiz.Id });
         var session = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResultDto>();
 
-        // 2. Open Lobby
         await adminClient.PostAsync($"/api/admin/sessions/{session!.Id}/open-lobby", null);
 
         var participantClient = Factory.CreateClient();
@@ -142,8 +139,10 @@ public class SessionIntegrationTests : BaseIntegrationTest
             DisplayName = "Player1"
         };
         
+        // Act
         var response = await participantClient.PostAsJsonAsync("/api/participant-sessions/join", joinRequest);
 
+        // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<JoinSessionResultDto>();
         Assert.NotNull(result);
@@ -154,6 +153,7 @@ public class SessionIntegrationTests : BaseIntegrationTest
     [Fact]
     public async Task JoinSession_WithInvalidPin_ShouldReturnNotFoundOrBadRequest()
     {
+        // Arrange
         var participantClient = Factory.CreateClient();
         participantClient.DefaultRequestHeaders.Add("X-User-Id", "test_guest_2");
         
@@ -163,28 +163,27 @@ public class SessionIntegrationTests : BaseIntegrationTest
             DisplayName = "Hacker"
         };
 
+        // Act
         var response = await participantClient.PostAsJsonAsync("/api/participant-sessions/join", joinRequest);
 
+        // Assert
         Assert.True(response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task JoinSession_WhenSessionAlreadyStarted_ShouldReturnBadRequest()
     {
+        // Arrange
         var adminClient = await GetAuthenticatedClientAsync("joinsession_started");
         var quiz = await CreateTestQuizAsync(adminClient);
         
-        // 1. Create
         var createSessionResponse = await adminClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionApiRequest { QuizId = quiz.Id });
         var session = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResultDto>();
 
-        // 2. Open Lobby
         await adminClient.PostAsync($"/api/admin/sessions/{session!.Id}/open-lobby", null);
 
-        // 3. Start Session
         await adminClient.PostAsync($"/api/admin/sessions/{session.Id}/start", null);
 
-        // 4. Try to Join
         var participantClient = Factory.CreateClient();
         participantClient.DefaultRequestHeaders.Add("X-User-Id", "test_guest_late");
         
@@ -194,23 +193,23 @@ public class SessionIntegrationTests : BaseIntegrationTest
             DisplayName = "LatePlayer"
         };
         
+        // Act
         var response = await participantClient.PostAsJsonAsync("/api/participant-sessions/join", joinRequest);
-
-        // Késői csatlakozást vissza kellene utasítani (A jelenlegi logika alapján ForbiddenOperationException keletkezik, ami Forbidden kódot ad)
+        
+        // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]
     public async Task JoinSession_WhenSessionInDraft_ShouldReturnForbidden()
     {
+        // Arrange
         var adminClient = await GetAuthenticatedClientAsync("joinsession_draft");
         var quiz = await CreateTestQuizAsync(adminClient);
         
-        // 1. Create (State will be Draft)
         var createSessionResponse = await adminClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionApiRequest { QuizId = quiz.Id });
         var session = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResultDto>();
 
-        // 2. Try to Join without Open Lobby
         var participantClient = Factory.CreateClient();
         
         var joinRequest = new JoinSessionByPinApiRequest
@@ -219,9 +218,10 @@ public class SessionIntegrationTests : BaseIntegrationTest
             DisplayName = "EarlyBird"
         };
         
+        // Act
         var response = await participantClient.PostAsJsonAsync("/api/participant-sessions/join", joinRequest);
-
-        // A jelenlegi logika alapján ez is Forbidden kell legyen, mivel a state nem Lobby
+        
+        // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
@@ -234,17 +234,15 @@ public class SessionIntegrationTests : BaseIntegrationTest
 
         var quiz = await CreateTestQuizAsync(ownerClient);
 
-        // Owner creates session
         var createSessionResponse = await ownerClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionApiRequest { QuizId = quiz.Id });
         var session = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResultDto>();
 
-        // Owner opens lobby
         await ownerClient.PostAsync($"/api/admin/sessions/{session!.Id}/open-lobby", null);
 
-        // Act - Malicious user tries to start it
+        // Act
         var response = await maliciousClient.PostAsync($"/api/admin/sessions/{session.Id}/start", null);
 
-        // Assert - Különböző felhasználók ne indíthassák el mások kvízét
+        // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 }

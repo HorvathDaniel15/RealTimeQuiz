@@ -14,37 +14,24 @@ public abstract class BaseIntegrationTest : IClassFixture<RealTimeQuizWebApplica
         Factory = factory;
         Client = Factory.CreateClient();
     }
-
-    /// <summary>
-    /// Segédfüggvény, ha a tesztek során közvetlenül bele kell nyúlni az In-Memory adatbázisba.
-    /// </summary>
+    
     protected IServiceScope CreateScope()
     {
         return Factory.Services.CreateScope();
     }
-
-    /// <summary>
-    /// Kinyeri az AppDbContext-et a létrehozott scope-ból.
-    /// Használata:
-    /// using var scope = CreateScope();
-    /// var db = GetDbContext(scope);
-    /// </summary>
+    
     protected AppDbContext GetDbContext(IServiceScope scope)
     {
         return scope.ServiceProvider.GetRequiredService<AppDbContext>();
     }
-
-    /// <summary>
-    /// Segédfüggvény: Regisztrál egy egyedi felhasználót, bejelentkezik vele, és visszaad egy autentikált HttpClient-et.
-    /// Ezzel minden teszt izolált, saját felhasználóval fog dolgozni.
-    /// </summary>
+    
     protected async Task<HttpClient> GetAuthenticatedClientAsync(string uniqueSuffix)
     {
         var email = $"test_{uniqueSuffix}@local.test";
         var password = "TestPassword123!";
         var username = $"user_{uniqueSuffix}";
 
-        // 1. Regisztráció
+        // 1. Registration
         var registerRequest = new RealTimeQuiz.Logic.Contracts.Auth.Requests.RegisterRequest 
         { 
             Email = email, 
@@ -53,7 +40,7 @@ public abstract class BaseIntegrationTest : IClassFixture<RealTimeQuizWebApplica
         };
         await Client.PostAsJsonAsync("/api/auth/register", registerRequest);
 
-        // 2. Belépés
+        // 2. Login
         var loginRequest = new RealTimeQuiz.Logic.Contracts.Auth.Requests.LoginRequest 
         { 
             Email = email, 
@@ -62,7 +49,7 @@ public abstract class BaseIntegrationTest : IClassFixture<RealTimeQuizWebApplica
         var loginResponse = await Client.PostAsJsonAsync("/api/auth/login", loginRequest);
         var loginResult = await loginResponse.Content.ReadFromJsonAsync<RealTimeQuiz.Logic.Contracts.Auth.Responses.LoginResult>();
 
-        // 3. Új HttpClient belépett header-rel
+        // 3. New HttpClient with header
         var authClient = Factory.CreateClient();
         authClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", loginResult!.AccessToken);
 

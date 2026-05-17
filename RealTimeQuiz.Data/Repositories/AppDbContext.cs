@@ -85,7 +85,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .IsUnique();
 
             entity.HasMany(x => x.Options)
-                .WithOne(x => x.QuizQuestion)
+                .WithOne(x => x.Question)
                 .HasForeignKey(x => x.QuizQuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

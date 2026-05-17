@@ -15,10 +15,10 @@ public class RealTimeQuizWebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.ConfigureServices(services =>
         {
-            // Eltávolítjuk az eredeti (Npgsql) adatbázis beállítást
+            // Remove the official Database
             services.RemoveAll<DbContextOptions<AppDbContext>>();
 
-            // Helyette In-Memory adatbázist használunk a tesztekhez
+            // Add InMemoryDatabase
             services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseInMemoryDatabase(_dbName);

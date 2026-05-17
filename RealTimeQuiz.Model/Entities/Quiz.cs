@@ -3,16 +3,23 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RealTimeQuiz.Model.Entities;
 
+[Table("Quizzes")]
 public class Quiz
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
     
-    public string Title { get; set; } = String.Empty;
+    [Required]
+    [MaxLength(200)]
+    public required string Title { get; set; }
+    
+    [MaxLength(2000)]
     public string? Description { get; set; }
     
-    public string OwnerId { get; set; } = String.Empty;
+    [Required]
+    [MaxLength(450)]
+    public required string OwnerId { get; set; }
     public ApplicationUser Owner { get; set; } = null!;
     
     public bool IsPublished { get; set; }

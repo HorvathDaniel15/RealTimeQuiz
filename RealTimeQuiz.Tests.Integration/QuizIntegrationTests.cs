@@ -25,14 +25,14 @@ public class QuizIntegrationTests : BaseIntegrationTest
             Description = "Ez egy automatikus teszt által generált kvíz.",
             Questions = new List<CreateQuizQuestionApiRequest>
             {
-                new CreateQuizQuestionApiRequest
+                new()
                 {
                     Text = "Melyik a legjobb programozási nyelv?",
                     TimeLimitSeconds = 20,
                     Options = new List<CreateQuestionOptionApiRequest>
                     {
-                        new CreateQuestionOptionApiRequest { Text = "C#", IsCorrect = true },
-                        new CreateQuestionOptionApiRequest { Text = "Valami más", IsCorrect = false }
+                        new() { Text = "C#", IsCorrect = true },
+                        new() { Text = "Valami más", IsCorrect = false }
                     }
                 }
             }
@@ -56,10 +56,9 @@ public class QuizIntegrationTests : BaseIntegrationTest
         // Arrange
         var client = await GetAuthenticatedClientAsync("getown");
         
-        // Csinálunk gyorsan két kvízt ehhez a userhez
         var quiz1 = new CreateQuizApiRequest
         {
-            Title = "Első Kvíz",
+            Title = "First Quiz",
             Questions = new List<CreateQuizQuestionApiRequest> 
             { 
                 new() { Text = "Q1", Options = [ new() { Text = "1", IsCorrect = true }, new() { Text = "2" } ] } 
@@ -67,7 +66,7 @@ public class QuizIntegrationTests : BaseIntegrationTest
         };
         var quiz2 = new CreateQuizApiRequest
         {
-            Title = "Második Kvíz",
+            Title = "Second Quiz",
             Questions = new List<CreateQuizQuestionApiRequest> 
             { 
                 new() { Text = "Q1", Options = [ new() { Text = "1", IsCorrect = true }, new() { Text = "2" } ] } 
@@ -86,8 +85,8 @@ public class QuizIntegrationTests : BaseIntegrationTest
 
         Assert.NotNull(resultList);
         Assert.Equal(2, resultList.Count);
-        Assert.Contains(resultList, q => q.Title == "Első Kvíz");
-        Assert.Contains(resultList, q => q.Title == "Második Kvíz");
+        Assert.Contains(resultList, q => q.Title == "First Quiz");
+        Assert.Contains(resultList, q => q.Title == "Second Quiz");
     }
 
     [Fact]
@@ -96,7 +95,7 @@ public class QuizIntegrationTests : BaseIntegrationTest
         // Arrange
         var client = await GetAuthenticatedClientAsync("createquiz_invalid");
 
-        // 1. Üres cím
+        // 1. Empty title
         var requestEmptyTitle = new CreateQuizApiRequest
         {
             Title = "",
@@ -104,7 +103,7 @@ public class QuizIntegrationTests : BaseIntegrationTest
             {
                 new()
                 {
-                    Text = "Kérdés",
+                    Text = "Question",
                     TimeLimitSeconds = 20,
                     Options = new List<CreateQuestionOptionApiRequest>
                     {
@@ -115,23 +114,23 @@ public class QuizIntegrationTests : BaseIntegrationTest
             }
         };
 
-        // 2. Kérdések listája üres
+        // 2. Empty questions list
         var requestNoQuestions = new CreateQuizApiRequest
         {
-            Title = "Érvényes Cím",
+            Title = "Valid Title",
             Questions = new List<CreateQuizQuestionApiRequest>()
         };
 
-        // 3. Negatív időkorlát
+        // 3. Negative time limit
         var requestNegativeTime = new CreateQuizApiRequest
         {
-            Title = "Érvényes Cím",
+            Title = "Valid Title",
             Questions = new List<CreateQuizQuestionApiRequest>
             {
                 new()
                 {
-                    Text = "Kérdés",
-                    TimeLimitSeconds = -5, // Invalid, min is 5
+                    Text = "Question",
+                    TimeLimitSeconds = -5,
                     Options = new List<CreateQuestionOptionApiRequest>
                     {
                         new() { Text = "A", IsCorrect = true },
@@ -141,15 +140,15 @@ public class QuizIntegrationTests : BaseIntegrationTest
             }
         };
 
-        // 4. Egyetlen opció sem helyes
+        // 4. No correct option
         var requestNoCorrectOption = new CreateQuizApiRequest
         {
-            Title = "Érvényes Cím",
+            Title = "Valid Title",
             Questions = new List<CreateQuizQuestionApiRequest>
             {
                 new()
                 {
-                    Text = "Kérdés",
+                    Text = "Question",
                     TimeLimitSeconds = 20,
                     Options = new List<CreateQuestionOptionApiRequest>
                     {
@@ -160,7 +159,7 @@ public class QuizIntegrationTests : BaseIntegrationTest
             }
         };
 
-        // Act & Assert
+        // Act and Assert
         var responseEmptyTitle = await client.PostAsJsonAsync("/api/admin/quizzes", requestEmptyTitle);
         Assert.Equal(HttpStatusCode.BadRequest, responseEmptyTitle.StatusCode);
 
@@ -195,7 +194,6 @@ public class QuizIntegrationTests : BaseIntegrationTest
         var ownerClient = await GetAuthenticatedClientAsync("quiz_owner1");
         var otherClient = await GetAuthenticatedClientAsync("quiz_owner2");
 
-        // 1. Owner creates a quiz
         var createRequest = new CreateQuizApiRequest
         {
             Title = "Titkos Kvíz",
@@ -217,7 +215,7 @@ public class QuizIntegrationTests : BaseIntegrationTest
         var createResponse = await ownerClient.PostAsJsonAsync("/api/admin/quizzes", createRequest);
         var createdQuiz = await createResponse.Content.ReadFromJsonAsync<CreateQuizResultDto>();
 
-        // Act - Other user tries to get the quiz by ID
+        // Act
         var response = await otherClient.GetAsync($"/api/admin/quizzes/{createdQuiz!.Id}");
 
         // Assert

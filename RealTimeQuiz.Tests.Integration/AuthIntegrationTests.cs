@@ -100,11 +100,11 @@ public class AuthIntegrationTests : BaseIntegrationTest
             UserName = "duplicate_user"
         };
 
-        // Act 1: Első regisztráció (sikeresnek kell lennie)
+        // Act - First registration should succeed
         var firstResponse = await Client.PostAsJsonAsync("/api/auth/register", request);
         firstResponse.EnsureSuccessStatusCode();
 
-        // Act 2: Második regisztráció ugyanazzal az e-maillel
+        // Act - Second registration with the same email
         var secondResponse = await Client.PostAsJsonAsync("/api/auth/register", request);
 
         // Assert
@@ -118,7 +118,7 @@ public class AuthIntegrationTests : BaseIntegrationTest
         var request = new RegisterRequest
         {
             Email = "weakpass@local.test",
-            Password = "123", // Túl rövid, nincs nagybetű, stb.
+            Password = "123", // Weak password
             UserName = "weakpass_user"
         };
 

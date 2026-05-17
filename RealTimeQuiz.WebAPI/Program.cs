@@ -93,7 +93,6 @@ builder.Services.AddScoped<ISessionNotificationService,  SessionNotificationServ
 
 
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -131,7 +130,7 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Ensure DB schema is up-to-date and seed a stable demo owner for MVP flows.
+// Ensure DB schema is up-to-date
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -143,24 +142,6 @@ using (var scope = app.Services.CreateScope())
     else
     {
         await dbContext.Database.EnsureCreatedAsync();
-    }
-
-    const string demoOwnerId = "demo-admin-1";
-    var hasDemoOwner = await dbContext.Users.AnyAsync(x => x.Id == demoOwnerId);
-
-    if (!hasDemoOwner)
-    {
-        dbContext.Users.Add(new ApplicationUser
-        {
-            Id = demoOwnerId,
-            UserName = "demo.admin",
-            NormalizedUserName = "DEMO.ADMIN",
-            Email = "demo-admin@local.test",
-            NormalizedEmail = "DEMO-ADMIN@LOCAL.TEST",
-            EmailConfirmed = true
-        });
-
-        await dbContext.SaveChangesAsync();
     }
 }
 
