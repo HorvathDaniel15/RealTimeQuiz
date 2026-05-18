@@ -148,7 +148,7 @@ export default function AdminSessionControlPage() {
                             disabled={!!busyAction}
                             onClick={() => runAction("openLobby", () => adminApi.openLobby(session.id))}
                         >
-                            Lobby megnyitas
+                            Open to Lobby
                         </button>
 
                         <button
@@ -156,7 +156,7 @@ export default function AdminSessionControlPage() {
                             disabled={!!busyAction}
                             onClick={() => runAction("startSession", () => adminApi.startSession(session.id))}
                         >
-                            Inditas
+                            Start
                         </button>
 
                         <button
@@ -166,7 +166,7 @@ export default function AdminSessionControlPage() {
                                 runAction("closeCurrentQuestion", () => adminApi.closeCurrentQuestion(session.id))
                             }
                         >
-                            Kerdes lezarasa
+                            Close Question
                         </button>
 
                         <button
@@ -174,7 +174,7 @@ export default function AdminSessionControlPage() {
                             disabled={!!busyAction}
                             onClick={() => runAction("advance", () => adminApi.advance(session.id))}
                         >
-                            Kovetkezo kerdes
+                            Next Question
                         </button>
 
                         <button
@@ -182,11 +182,11 @@ export default function AdminSessionControlPage() {
                             disabled={!!busyAction}
                             onClick={() => runAction("finish", () => adminApi.finish(session.id))}
                         >
-                            Befejezes
+                            Finish
                         </button>
 
                         <button className="admin-button admin-button-secondary" disabled={!!busyAction} onClick={loadSession}>
-                            Frissites
+                            Update
                         </button>
                     </div>
                 </section>
