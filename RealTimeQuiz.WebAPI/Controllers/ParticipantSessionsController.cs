@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using RealTimeQuiz.Logic.Contracts.Sessions.Requests;
 using RealTimeQuiz.Logic.Contracts.Sessions.Responses;
 using RealTimeQuiz.Logic.Services.Interfaces;
-using RealTimeQuiz.WebAPI.Contracts.Requests.Participant;
-using RealTimeQuiz.WebAPI.Mappers;
 using RealTimeQuiz.WebAPI.SignalR.Services;
 
 namespace RealTimeQuiz.WebAPI.Controllers;
@@ -30,12 +28,11 @@ public class ParticipantSessionsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<JoinSessionResultDto>> Join(
-        [FromBody] JoinSessionByPinApiRequest request,
+        [FromBody] JoinSessionByPinRequest request,
         [FromHeader(Name = UserHeaderName)] string? userId,
         CancellationToken cancellationToken)
     {
-        var joinRequest = request.ToLogicRequest();
-        var result = await _participantSessionService.JoinByPinAsync(joinRequest, userId, cancellationToken);
+        var result = await _participantSessionService.JoinByPinAsync(request, userId, cancellationToken);
         
         await _notificationService.NotifyParticipantJoinedAsync(result.SessionId, result);
         await _notificationService.NotifyLeaderboardUpdatedAsync(result.SessionId);
@@ -69,11 +66,10 @@ public class ParticipantSessionsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<SubmitAnswerResultDto>> SubmitAnswer(
-        [FromBody] SubmitAnswerApiRequest request,
+        [FromBody] SubmitAnswerRequest request,
         CancellationToken cancellationToken)
     {
-        var submitRequest = request.ToLogicRequest();
-        var result = await _participantSessionService.SubmitAnswerAsync(submitRequest, cancellationToken);
+        var result = await _participantSessionService.SubmitAnswerAsync(request, cancellationToken);
         
         await _notificationService.NotifyAnswerSubmittedAsync(result.SessionId, result);
         

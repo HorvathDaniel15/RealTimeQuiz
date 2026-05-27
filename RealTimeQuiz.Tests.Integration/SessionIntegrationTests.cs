@@ -2,8 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using RealTimeQuiz.Logic.Contracts.Quizzes.Responses;
 using RealTimeQuiz.Logic.Contracts.Sessions.Responses;
-using RealTimeQuiz.WebAPI.Contracts.Requests.Admin;
-using RealTimeQuiz.WebAPI.Contracts.Requests.Participant;
+using RealTimeQuiz.Logic.Contracts.Quizzes.Requests;
+using RealTimeQuiz.Logic.Contracts.Sessions.Requests;
+
 
 namespace RealTimeQuiz.Tests.Integration;
 
@@ -15,16 +16,16 @@ public class SessionIntegrationTests : BaseIntegrationTest
 
     private async Task<CreateQuizResultDto> CreateTestQuizAsync(HttpClient adminClient)
     {
-        var createRequest = new CreateQuizApiRequest
+        var createRequest = new CreateQuizRequest
         {
             Title = "Session Teszt Kvíz",
-            Questions = new List<CreateQuizQuestionApiRequest>
+            Questions = new List<CreateQuizQuestionRequest>
             {
                 new()
                 {
                     Text = "Melyik egy autó márka?",
                     TimeLimitSeconds = 30,
-                    Options = new List<CreateQuestionOptionApiRequest>
+                    Options = new List<CreateQuestionOptionRequest>
                     {
                         new() { Text = "BMW", IsCorrect = true },
                         new() { Text = "Alma", IsCorrect = false }
@@ -45,16 +46,16 @@ public class SessionIntegrationTests : BaseIntegrationTest
         // Arrange
         var adminClient = await GetAuthenticatedClientAsync("submit_after_time");
         
-        var createQuizReq = new CreateQuizApiRequest
+        var createQuizReq = new CreateQuizRequest
         {
             Title = "Gyors Kvíz",
-            Questions = new List<CreateQuizQuestionApiRequest>
+            Questions = new List<CreateQuizQuestionRequest>
             {
                 new()
                 {
                     Text = "Gyors kérdés",
                     TimeLimitSeconds = 5,
-                    Options = new List<CreateQuestionOptionApiRequest>
+                    Options = new List<CreateQuestionOptionRequest>
                     {
                         new() { Text = "A", IsCorrect = true },
                         new() { Text = "B", IsCorrect = false }
@@ -66,12 +67,12 @@ public class SessionIntegrationTests : BaseIntegrationTest
         quizResp.EnsureSuccessStatusCode();
         var quiz = await quizResp.Content.ReadFromJsonAsync<CreateQuizResultDto>();
 
-        var createSessionResponse = await adminClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionApiRequest { QuizId = quiz!.Id });
+        var createSessionResponse = await adminClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionRequest { QuizId = quiz!.Id });
         var session = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResultDto>();
         await adminClient.PostAsync($"/api/admin/sessions/{session!.Id}/open-lobby", null);
 
         var participantClient = Factory.CreateClient();
-        var joinRequest = new JoinSessionByPinApiRequest { JoinPin = session.JoinPin, DisplayName = "Slowpoke" };
+        var joinRequest = new JoinSessionByPinRequest { JoinPin = session.JoinPin, DisplayName = "Slowpoke" };
         var joinResponse = await participantClient.PostAsJsonAsync("/api/participant-sessions/join", joinRequest);
         var joinResult = await joinResponse.Content.ReadFromJsonAsync<JoinSessionResultDto>();
 
@@ -84,7 +85,7 @@ public class SessionIntegrationTests : BaseIntegrationTest
         await Task.Delay(5200);
 
         // Act
-        var submitRequest = new SubmitAnswerApiRequest
+        var submitRequest = new SubmitAnswerRequest
         {
             ParticipantId = joinResult.ParticipantId,
             QuestionId = currentQuestion!.QuestionId,
@@ -104,7 +105,7 @@ public class SessionIntegrationTests : BaseIntegrationTest
         var quiz = await CreateTestQuizAsync(adminClient);
 
         // Act
-        var request = new CreateSessionApiRequest { QuizId = quiz.Id };
+        var request = new CreateSessionRequest { QuizId = quiz.Id };
         var response = await adminClient.PostAsJsonAsync("/api/admin/sessions", request);
 
         // Assert
@@ -125,7 +126,7 @@ public class SessionIntegrationTests : BaseIntegrationTest
         var adminClient = await GetAuthenticatedClientAsync("joinsession");
         var quiz = await CreateTestQuizAsync(adminClient);
         
-        var createSessionResponse = await adminClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionApiRequest { QuizId = quiz.Id });
+        var createSessionResponse = await adminClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionRequest { QuizId = quiz.Id });
         var session = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResultDto>();
 
         await adminClient.PostAsync($"/api/admin/sessions/{session!.Id}/open-lobby", null);
@@ -133,7 +134,7 @@ public class SessionIntegrationTests : BaseIntegrationTest
         var participantClient = Factory.CreateClient();
         participantClient.DefaultRequestHeaders.Add("X-User-Id", "test_guest_1");
         
-        var joinRequest = new JoinSessionByPinApiRequest
+        var joinRequest = new JoinSessionByPinRequest
         {
             JoinPin = session!.JoinPin,
             DisplayName = "Player1"
@@ -157,7 +158,7 @@ public class SessionIntegrationTests : BaseIntegrationTest
         var participantClient = Factory.CreateClient();
         participantClient.DefaultRequestHeaders.Add("X-User-Id", "test_guest_2");
         
-        var joinRequest = new JoinSessionByPinApiRequest
+        var joinRequest = new JoinSessionByPinRequest
         {
             JoinPin = "999999",
             DisplayName = "Hacker"
@@ -177,7 +178,7 @@ public class SessionIntegrationTests : BaseIntegrationTest
         var adminClient = await GetAuthenticatedClientAsync("joinsession_started");
         var quiz = await CreateTestQuizAsync(adminClient);
         
-        var createSessionResponse = await adminClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionApiRequest { QuizId = quiz.Id });
+        var createSessionResponse = await adminClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionRequest { QuizId = quiz.Id });
         var session = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResultDto>();
 
         await adminClient.PostAsync($"/api/admin/sessions/{session!.Id}/open-lobby", null);
@@ -187,7 +188,7 @@ public class SessionIntegrationTests : BaseIntegrationTest
         var participantClient = Factory.CreateClient();
         participantClient.DefaultRequestHeaders.Add("X-User-Id", "test_guest_late");
         
-        var joinRequest = new JoinSessionByPinApiRequest
+        var joinRequest = new JoinSessionByPinRequest
         {
             JoinPin = session.JoinPin,
             DisplayName = "LatePlayer"
@@ -207,12 +208,12 @@ public class SessionIntegrationTests : BaseIntegrationTest
         var adminClient = await GetAuthenticatedClientAsync("joinsession_draft");
         var quiz = await CreateTestQuizAsync(adminClient);
         
-        var createSessionResponse = await adminClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionApiRequest { QuizId = quiz.Id });
+        var createSessionResponse = await adminClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionRequest { QuizId = quiz.Id });
         var session = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResultDto>();
 
         var participantClient = Factory.CreateClient();
         
-        var joinRequest = new JoinSessionByPinApiRequest
+        var joinRequest = new JoinSessionByPinRequest
         {
             JoinPin = session!.JoinPin,
             DisplayName = "EarlyBird"
@@ -234,7 +235,7 @@ public class SessionIntegrationTests : BaseIntegrationTest
 
         var quiz = await CreateTestQuizAsync(ownerClient);
 
-        var createSessionResponse = await ownerClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionApiRequest { QuizId = quiz.Id });
+        var createSessionResponse = await ownerClient.PostAsJsonAsync("/api/admin/sessions", new CreateSessionRequest { QuizId = quiz.Id });
         var session = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResultDto>();
 
         await ownerClient.PostAsync($"/api/admin/sessions/{session!.Id}/open-lobby", null);

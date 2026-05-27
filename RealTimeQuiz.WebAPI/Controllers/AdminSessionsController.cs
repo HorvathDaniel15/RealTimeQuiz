@@ -1,11 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RealTimeQuiz.Logic.Contracts.Sessions.Requests;
 using RealTimeQuiz.Logic.Contracts.Sessions.Responses;
 using RealTimeQuiz.Logic.Services.Interfaces;
 using RealTimeQuiz.Model.Enums;
-using RealTimeQuiz.WebAPI.Contracts.Requests.Admin;
-using RealTimeQuiz.WebAPI.Mappers;
 using RealTimeQuiz.WebAPI.SignalR.Services;
 
 namespace RealTimeQuiz.WebAPI.Controllers;
@@ -31,7 +30,7 @@ public class AdminSessionsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CreateSessionResultDto>> Create(
-        [FromBody] CreateSessionApiRequest request,
+        [FromBody] CreateSessionRequest request,
         CancellationToken cancellationToken)
     {
         var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ??
@@ -41,8 +40,7 @@ public class AdminSessionsController : ControllerBase
         {
             return Unauthorized();
         }
-        var createRequest = request.ToLogicRequest();
-        var result = await _sessionService.CreateSessionAsync(createRequest, ownerId, cancellationToken);
+        var result = await _sessionService.CreateSessionAsync(request, ownerId, cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { sessionId = result.Id }, result);
     }

@@ -1,10 +1,7 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using RealTimeQuiz.Logic.Contracts.Auth.Requests;
-using RealTimeQuiz.Logic.Contracts.Auth.Responses;
 using RealTimeQuiz.Logic.Contracts.Quizzes.Responses;
-using RealTimeQuiz.WebAPI.Contracts.Requests.Admin;
+using RealTimeQuiz.Logic.Contracts.Quizzes.Requests;
 
 namespace RealTimeQuiz.Tests.Integration;
 
@@ -19,17 +16,17 @@ public class QuizIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var client = await GetAuthenticatedClientAsync("createquiz");
-        var createRequest = new CreateQuizApiRequest
+        var createRequest = new CreateQuizRequest
         {
             Title = "Integrációs Teszt Kvíz",
             Description = "Ez egy automatikus teszt által generált kvíz.",
-            Questions = new List<CreateQuizQuestionApiRequest>
+            Questions = new List<CreateQuizQuestionRequest>
             {
                 new()
                 {
                     Text = "Melyik a legjobb programozási nyelv?",
                     TimeLimitSeconds = 20,
-                    Options = new List<CreateQuestionOptionApiRequest>
+                    Options = new List<CreateQuestionOptionRequest>
                     {
                         new() { Text = "C#", IsCorrect = true },
                         new() { Text = "Valami más", IsCorrect = false }
@@ -56,18 +53,18 @@ public class QuizIntegrationTests : BaseIntegrationTest
         // Arrange
         var client = await GetAuthenticatedClientAsync("getown");
         
-        var quiz1 = new CreateQuizApiRequest
+        var quiz1 = new CreateQuizRequest
         {
             Title = "First Quiz",
-            Questions = new List<CreateQuizQuestionApiRequest> 
+            Questions = new List<CreateQuizQuestionRequest> 
             { 
                 new() { Text = "Q1", Options = [ new() { Text = "1", IsCorrect = true }, new() { Text = "2" } ] } 
             }
         };
-        var quiz2 = new CreateQuizApiRequest
+        var quiz2 = new CreateQuizRequest
         {
             Title = "Second Quiz",
-            Questions = new List<CreateQuizQuestionApiRequest> 
+            Questions = new List<CreateQuizQuestionRequest> 
             { 
                 new() { Text = "Q1", Options = [ new() { Text = "1", IsCorrect = true }, new() { Text = "2" } ] } 
             }
@@ -96,16 +93,16 @@ public class QuizIntegrationTests : BaseIntegrationTest
         var client = await GetAuthenticatedClientAsync("createquiz_invalid");
 
         // 1. Empty title
-        var requestEmptyTitle = new CreateQuizApiRequest
+        var requestEmptyTitle = new CreateQuizRequest
         {
             Title = "",
-            Questions = new List<CreateQuizQuestionApiRequest>
+            Questions = new List<CreateQuizQuestionRequest>
             {
                 new()
                 {
                     Text = "Question",
                     TimeLimitSeconds = 20,
-                    Options = new List<CreateQuestionOptionApiRequest>
+                    Options = new List<CreateQuestionOptionRequest>
                     {
                         new() { Text = "A", IsCorrect = true },
                         new() { Text = "B", IsCorrect = false }
@@ -115,23 +112,23 @@ public class QuizIntegrationTests : BaseIntegrationTest
         };
 
         // 2. Empty questions list
-        var requestNoQuestions = new CreateQuizApiRequest
+        var requestNoQuestions = new CreateQuizRequest
         {
             Title = "Valid Title",
-            Questions = new List<CreateQuizQuestionApiRequest>()
+            Questions = new List<CreateQuizQuestionRequest>()
         };
 
         // 3. Negative time limit
-        var requestNegativeTime = new CreateQuizApiRequest
+        var requestNegativeTime = new CreateQuizRequest
         {
             Title = "Valid Title",
-            Questions = new List<CreateQuizQuestionApiRequest>
+            Questions = new List<CreateQuizQuestionRequest>
             {
                 new()
                 {
                     Text = "Question",
                     TimeLimitSeconds = -5,
-                    Options = new List<CreateQuestionOptionApiRequest>
+                    Options = new List<CreateQuestionOptionRequest>
                     {
                         new() { Text = "A", IsCorrect = true },
                         new() { Text = "B", IsCorrect = false }
@@ -141,16 +138,16 @@ public class QuizIntegrationTests : BaseIntegrationTest
         };
 
         // 4. No correct option
-        var requestNoCorrectOption = new CreateQuizApiRequest
+        var requestNoCorrectOption = new CreateQuizRequest
         {
             Title = "Valid Title",
-            Questions = new List<CreateQuizQuestionApiRequest>
+            Questions = new List<CreateQuizQuestionRequest>
             {
                 new()
                 {
                     Text = "Question",
                     TimeLimitSeconds = 20,
-                    Options = new List<CreateQuestionOptionApiRequest>
+                    Options = new List<CreateQuestionOptionRequest>
                     {
                         new() { Text = "A", IsCorrect = false },
                         new() { Text = "B", IsCorrect = false }
@@ -194,16 +191,16 @@ public class QuizIntegrationTests : BaseIntegrationTest
         var ownerClient = await GetAuthenticatedClientAsync("quiz_owner1");
         var otherClient = await GetAuthenticatedClientAsync("quiz_owner2");
 
-        var createRequest = new CreateQuizApiRequest
+        var createRequest = new CreateQuizRequest
         {
             Title = "Titkos Kvíz",
-            Questions = new List<CreateQuizQuestionApiRequest>
+            Questions = new List<CreateQuizQuestionRequest>
             {
                 new()
                 {
                     Text = "Kérdés 1",
                     TimeLimitSeconds = 20,
-                    Options = new List<CreateQuestionOptionApiRequest>
+                    Options = new List<CreateQuestionOptionRequest>
                     {
                         new() { Text = "A", IsCorrect = true },
                         new() { Text = "B", IsCorrect = false }

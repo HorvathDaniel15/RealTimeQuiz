@@ -1,10 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RealTimeQuiz.Logic.Contracts.Quizzes.Requests;
 using RealTimeQuiz.Logic.Contracts.Quizzes.Responses;
 using RealTimeQuiz.Logic.Services.Interfaces;
-using RealTimeQuiz.WebAPI.Contracts.Requests.Admin;
-using RealTimeQuiz.WebAPI.Mappers;
 
 namespace RealTimeQuiz.WebAPI.Controllers;
 
@@ -69,7 +68,7 @@ public class AdminQuizzesController : ControllerBase
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CreateQuizResultDto>> Create(
-        [FromBody] CreateQuizApiRequest request,
+        [FromBody] CreateQuizRequest request,
         CancellationToken cancellationToken)
     {
         var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ??
@@ -80,10 +79,8 @@ public class AdminQuizzesController : ControllerBase
             return Unauthorized();
         }
         
-        var createRequest = request.ToLogicRequest();
-        var result = await _quizService.CreateQuizAsync(createRequest, ownerId, cancellationToken);
+        var result = await _quizService.CreateQuizAsync(request, ownerId, cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { quizId = result.Id }, result);
     }
 }
-
