@@ -76,7 +76,7 @@ builder.Services.AddCors(options =>
 
 // ===== JWT/OAuth2 infra =====
 // 1) AuthN + AuthZ
-builder.Services.AddJWTOauth2(options =>
+builder.Services.AddJwtOauth2(options =>
 {
     var auth = builder.Configuration.GetSection("Auth");
     options.Issuer = auth["Issuer"]!;
